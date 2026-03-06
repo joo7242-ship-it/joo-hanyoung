@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-(주)한영피엔에스 IMS 문서 미리보기 웹앱 v2.1
-버그 수정:
-  - JS onclick 파일명 특수문자(·, 공백 등) 처리 → data-* 속성 + 이벤트 위임 방식으로 전환
-  - 검색창 blur 이벤트로 결과 사라지는 문제 수정 → mousedown으로 변경
-  - 헤딩 스타일 매핑 완성 (Heading 1/2/3 + 한글 변형 모두 처리)
-  - Excel 헤더 인식 개선 (첫 행 무조건 th → 내용 있는 첫 행 기준)
-  - 다운로드 기능 안정화 (파일명 인코딩 처리)
-  - 전체 파일 목록 ZIP 다운로드 기능 추가
-  - 미리보기 캐시 적용으로 재방문 속도 향상
+(주)한영피엔에스 IMS 문서 미리보기 웹앱 v2.2
+변경사항:
+  - PORT 환경변수 지원 (Render.com 등 클라우드 배포 대응)
+  - DOCS_ROOT 환경변수 지원 (배포 환경 자동 적응)
+  - 상대경로 우선 탐색: ./docs → 환경변수 → 기본 경로 순
 """
 
 from flask import Flask, jsonify, render_template_string, request, send_file, Response
@@ -22,8 +18,26 @@ app = Flask(__name__)
 # ─── 캐시 (메모리) ──────────────────────────────────────
 _preview_cache = {}
 
-# ─── 상수 ───────────────────────────────────────────────
-DOCS_ROOT = '/home/user/ims_full/output_final'
+# ─── DOCS_ROOT: 환경변수 > 상대경로 > 절대경로 순 탐색 ──
+def _find_docs_root():
+    # 1) 환경변수 우선
+    env_path = os.environ.get('DOCS_ROOT', '')
+    if env_path and os.path.isdir(env_path):
+        return env_path
+    # 2) 앱 파일 기준 상대경로 ./docs
+    base = os.path.dirname(os.path.abspath(__file__))
+    rel = os.path.join(base, 'docs')
+    if os.path.isdir(rel):
+        return rel
+    # 3) 로컬 개발 환경 절대경로
+    local = '/home/user/ims_full/output_final'
+    if os.path.isdir(local):
+        return local
+    # 4) 마지막 fallback
+    return rel  # 없어도 경로는 반환 (에러는 API에서 처리)
+
+DOCS_ROOT = _find_docs_root()
+print(f'📁 DOCS_ROOT: {DOCS_ROOT}  (존재: {os.path.isdir(DOCS_ROOT)})')
 
 STANDARD_INFO = {
     'ISO9001':  {'name': 'ISO 9001 품질경영',    'color': '#1F3864', 'icon': '🏆', 'badge': 'QMS'},
@@ -960,7 +974,8 @@ def index():
 
 
 if __name__ == '__main__':
-    print(f'🚀 IMS 문서 미리보기 서버 v2.1 시작')
-    print(f'   URL: http://0.0.0.0:3000')
+    port = int(os.environ.get('PORT', 3000))
+    print(f'🚀 IMS 문서 미리보기 서버 v2.2 시작')
+    print(f'   URL: http://0.0.0.0:{port}')
     print(f'   문서 경로: {DOCS_ROOT}')
-    app.run(host='0.0.0.0', port=3000, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=False)
