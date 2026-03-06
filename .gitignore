@@ -2,30 +2,27 @@
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
-.Python
-*.egg-info/
-dist/
-build/
-.eggs/
-
-# 환경
 .env
-.venv
 venv/
-env/
 
-# PM2 로그
+# Node.js
+node_modules/
+package-lock.json
+package.json
+tsconfig.json
+wrangler.jsonc
+vite.config.mts
+src/
+public/
+dist/
+.wrangler/
+
+# PM2
 logs/
 *.log
-.pm2/
 
 # IDE
 .vscode/
 .idea/
-*.swp
-*.swo
-
-# OS
 .DS_Store
 Thumbs.db
