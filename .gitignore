@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+
+# Node.js
+node_modules/
+package-lock.json
+package.json
+tsconfig.json
+wrangler.jsonc
+vite.config.mts
+src/
+public/
+dist/
+.wrangler/
+
+# PM2
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
