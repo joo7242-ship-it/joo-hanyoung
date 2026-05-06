@@ -943,7 +943,7 @@ body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f0
 
 <script>
 let TD=null,curLang='ko',curAudio=null,queue=[],qi=0;
-fetch('translations.json').then(r=>r.ok?r.json():null).then(d=>{TD=d}).catch(()=>{});
+fetch('translations.json?v=' + Date.now(), {cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{TD=d; if(curLang!=='ko') changeLang(curLang);}).catch(()=>{});
 const LM={"km": {"name": "캄보디아어", "flag": "🇰🇭"}, "vi": {"name": "베트남어", "flag": "🇻🇳"}, "id": {"name": "인도네시아어", "flag": "🇮🇩"}, "tl": {"name": "필리핀어", "flag": "🇵🇭"}, "zh-CN": {"name": "중국어", "flag": "🇨🇳"}, "th": {"name": "태국어", "flag": "🇹🇭"}, "my": {"name": "미얀마어", "flag": "🇲🇲"}, "uz": {"name": "우즈베크어", "flag": "🇺🇿"}, "en": {"name": "영어", "flag": "🇺🇸"}};
 
 function changeLang(lang){
