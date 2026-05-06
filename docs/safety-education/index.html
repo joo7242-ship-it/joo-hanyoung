@@ -62,9 +62,6 @@ body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f0
     | 외국인 근로자 상담센터 <strong>1350</strong> (모국어 통역 지원)
 </div>
 
-
-
-
 <div class="controls">
     <label>🌐 언어:</label>
     <select id="langSel" onchange="changeLang(this.value)">
@@ -86,10 +83,7 @@ body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f0
 </div>
 
 <div class="stats">
-    <div class="stat-item">교육 콘텐츠 <span class="stat-num">30</span>건</div>
-    <div class="stat-item">지원 언어 <span class="stat-num">10</span>개국</div>
-    <div class="stat-item">음성 파일 <span class="stat-num">300</span>개</div>
-</div>
+    <div class="stat-item">교육 콘텐츠 <span class="stat-num">32</span>건</div>
 
 <!-- VISITOR_STATS_START -->
 <div class="visitor-stats" style="display:flex;gap:8px;flex-wrap:wrap;padding:0 14px 8px;margin-top:4px">
@@ -114,50 +108,35 @@ body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f0
 (function(){
     const API = 'https://abacus.jasoncameron.dev';
     const NS = 'hanyoung-safety-prod';
-
-    // 중복 방문 방지 (30분 내 재방문은 집계 안 함)
     const LAST_KEY = 'hy_last_visit';
     const now = Date.now();
     const last = parseInt(localStorage.getItem(LAST_KEY) || '0', 10);
-    const isNewVisit = (now - last) > 30 * 60 * 1000;  // 30분
+    const isNewVisit = (now - last) > 30 * 60 * 1000;
     if (isNewVisit) localStorage.setItem(LAST_KEY, String(now));
-
-    // 날짜 계산
     const d = new Date();
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
-    const monthKey = `${yyyy}-${mm}`;
-    const dayKey = `${yyyy}-${mm}-${dd}`;
-    // ISO 주차 계산
+    const monthKey = yyyy+'-'+mm;
+    const dayKey = yyyy+'-'+mm+'-'+dd;
     const firstDay = new Date(yyyy, 0, 1);
     const daysSince = Math.floor((d - firstDay) / 86400000);
     const weekNum = Math.ceil((daysSince + firstDay.getDay() + 1) / 7);
-    const weekKey = `${yyyy}-W${String(weekNum).padStart(2, '0')}`;
-
-    const endpoints = {
-        total: 'total',
-        month: `m-${monthKey}`,
-        week: `w-${weekKey}`,
-        day: `d-${dayKey}`,
-    };
-
+    const weekKey = yyyy+'-W'+String(weekNum).padStart(2, '0');
+    const endpoints = { total:'total', month:'m-'+monthKey, week:'w-'+weekKey, day:'d-'+dayKey };
     async function call(key) {
         const verb = isNewVisit ? 'hit' : 'get';
         try {
-            const r = await fetch(`${API}/${verb}/${NS}/${key}`, { cache: 'no-store' });
+            const r = await fetch(API+'/'+verb+'/'+NS+'/'+key, { cache: 'no-store' });
             if (!r.ok) return null;
             const j = await r.json();
-            return j.value ?? null;
+            return j.value !== undefined ? j.value : null;
         } catch(e) { return null; }
     }
-
     async function load() {
         const [t, m, w, dv] = await Promise.all([
-            call(endpoints.total),
-            call(endpoints.month),
-            call(endpoints.week),
-            call(endpoints.day),
+            call(endpoints.total), call(endpoints.month),
+            call(endpoints.week), call(endpoints.day),
         ]);
         const fmt = v => v == null ? '-' : v.toLocaleString('ko-KR');
         document.getElementById('vsTotal').textContent = fmt(t);
@@ -170,8 +149,13 @@ body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f0
 </script>
 <!-- VISITOR_STATS_END -->
 
+    <div class="stat-item">지원 언어 <span class="stat-num">10</span>개국</div>
+    <div class="stat-item">음성 파일 <span class="stat-num">320</span>개</div>
+</div>
+
 <div class="filters">
     <button class="filter-btn active" onclick="filterCat('all',this)">전체</button>
+        <button class="filter-btn" onclick="filterCat('경영방침',this)">경영방침</button>
         <button class="filter-btn" onclick="filterCat('채용전교육',this)">채용전교육</button>
         <button class="filter-btn" onclick="filterCat('정규교육',this)">정규교육</button>
         <button class="filter-btn" onclick="filterCat('특별안전교육',this)">특별안전교육</button>
@@ -183,6 +167,54 @@ body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f0
 
 <div class="grid" id="grid">
     
+        <div class="safety-card" data-id="policy_labor_human_rights" data-category="경영방침" style="border-left-color:#0f4c81">
+            <div class="card-header">
+                <span class="badge" style="background:#0f4c8115;color:#0f4c81">경영방침</span>
+                <span class="ops-tag">OPS-PL-001</span>
+                <h3 class="title-ko">노동·인권 경영방침 (8개항)</h3>
+                <h3 class="title-tr" style="display:none;color:#0f4c81"></h3>
+            </div>
+            <div class="card-body">
+                <div class="text-block ko-block">
+                    <span class="lang-tag">🇰🇷 한국어</span>
+                    <p class="content-ko">한영피엔에스 노동 및 인권 경영방침입니다. 본 방침은 유엔 기업과 인권 이행원칙, 국제노동기구 핵심협약, RBA 행동규범, EU 공급망실사지침을 통합 정합한 것입니다. 첫째, 강제노동과 인신매매 노동을 금지합니다. 신분증을 보관하지 않고, 송출비는 회사가 부담하며, 자유로운 이동권을 보장합니다. 둘째, 아동 및 청소년 근로자를 보호합니다. 최저 고용연령은 15세이며, 18세 미만은 위험작업과 야간작업을 금지합니다. 셋째, 근로시간과 임금을 적정하게 운영합니다. 주 52시간 한도, 최저임금 이상 지급, 부당공제를 금지합니다. 넷째, 차별을 금지하고 기회 평등을 보장합니다. 성별, 국적, 장애 등에 따른 차별을 금지하고, 동일가치 노동에 동일임금을 지급합니다. 다섯째, 직장 내 괴롭힘과 성희롱을 무관용으로 대응합니다. 예방 의무를 다하고, 신고자에 대한 보복을 금지합니다. 여섯째, 결사의 자유와 단체교섭을 보장합니다. 노사협의회를 분기마다 운영하고, 단체교섭권과 단체행동권을 보장합니다. 일곱째, 안전보건과 화학물질을 관리합니다. 위험성평가, 물질안전보건자료 비치, 특별관리, 비상대응 체계를 운영합니다. 여덟째, 외국인과 취약집단의 권리를 보호합니다. 표준근로계약, 다국어 핸드북과 통역, 모성보호, 합리적 편의를 제공합니다.</p>
+                </div>
+                <div class="text-block tr-block" style="display:none">
+                    <span class="lang-tag tr-tag">모국어</span>
+                    <p class="content-tr"></p>
+                </div>
+            </div>
+            <div class="card-actions">
+                <button class="btn ko-btn" onclick="playKo('policy_labor_human_rights')">🇰🇷 한국어 재생</button>
+                <button class="btn tr-btn" onclick="playTr('policy_labor_human_rights')" style="display:none">🔊 모국어 재생</button>
+                <button class="btn stop-btn" onclick="stopAll()">■ 정지</button>
+                <span class="status"></span>
+            </div>
+        </div>
+        <div class="safety-card" data-id="policy_safety_health" data-category="경영방침" style="border-left-color:#0f4c81">
+            <div class="card-header">
+                <span class="badge" style="background:#0f4c8115;color:#0f4c81">경영방침</span>
+                <span class="ops-tag">OPS-PL-002</span>
+                <h3 class="title-ko">안전보건 경영방침</h3>
+                <h3 class="title-tr" style="display:none;color:#0f4c81"></h3>
+            </div>
+            <div class="card-body">
+                <div class="text-block ko-block">
+                    <span class="lang-tag">🇰🇷 한국어</span>
+                    <p class="content-ko">한영피엔에스 안전보건 경영방침입니다. 주식회사 한영피엔에스는 기업 경영활동 전반에 대해 종사원의 안전과 보건을 기업의 최우선 가치로 인식합니다. 안전보건법령을 준수하는 안전보건 경영관리체계를 구축하고 이행함으로써 종사원이 안전하고 쾌적한 환경에서 근무할 수 있도록 사회적 책임을 다합니다. 이를 위해 다음과 같은 안전보건활동을 통해 지속적으로 안전보건환경을 개선합니다. 첫째, 경영책임자는 종사자의 생명 보호와 안전한 작업환경 조성을 기업 경영활동의 최우선 목표로 삼습니다. 둘째, 경영책임자는 사업장 내 위험요인 제거, 대체, 통제와 종사원의 안전보건 요구사항을 성실히 이행할 수 있도록 충분한 인적, 물적 자원을 제공합니다. 셋째, 안전보건 목표를 설정하고 이를 달성하기 위한 세부적인 실행계획을 수립 및 이행하며, 정기적 평가를 통한 인센티브제를 운영합니다. 넷째, 안전보건 활동에 종사원이 자발적으로 참여하도록 분위기를 조성하여 위험요인을 파악하고 개선하며, 개선안을 성실히 이행할 수 있도록 전체와 공유합니다. 다섯째, 모든 종사자가 자신의 직무와 관련된 화재, 폭발, 누출 등 위험요인을 파악하고 개선하며, 위험요인 제거, 대체 및 통제기법 등 안전보건 교육 및 훈련을 강화합니다. 여섯째, 모든 종사자, 도급인, 수급인, 도급 및 수급 관계인 등은 안전보건 관계 법령과 관련 규정을 준수함은 물론 한영피엔에스 안전보건 경영방침과 관련 내부규정을 준수하여야 합니다. 일곱째, 당사의 안전보건 경영방침은 종사자 및 이해 관계자에게 공개하여 안전보건 경영활동을 투명하게 합니다.</p>
+                </div>
+                <div class="text-block tr-block" style="display:none">
+                    <span class="lang-tag tr-tag">모국어</span>
+                    <p class="content-tr"></p>
+                </div>
+            </div>
+            <div class="card-actions">
+                <button class="btn ko-btn" onclick="playKo('policy_safety_health')">🇰🇷 한국어 재생</button>
+                <button class="btn tr-btn" onclick="playTr('policy_safety_health')" style="display:none">🔊 모국어 재생</button>
+                <button class="btn stop-btn" onclick="stopAll()">■ 정지</button>
+                <span class="status"></span>
+            </div>
+        </div>
         <div class="safety-card" data-id="emergency_hiring" data-category="채용전교육" style="border-left-color:#e53e3e">
             <div class="card-header">
                 <span class="badge" style="background:#e53e3e15;color:#e53e3e">채용전교육</span>
@@ -906,7 +938,6 @@ body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#f0
 </div>
 
 <div class="footer">
-    <p>한영P&S 경영지원팀 | 고용노동부 현장점검 대응 안전교육 자료</p>
     <p>산업안전보건법 제31조 근로자 안전보건교육 | 외국인근로자 상담센터 1350</p>
 </div>
 
