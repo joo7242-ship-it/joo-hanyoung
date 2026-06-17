@@ -13,6 +13,12 @@ from docx import Document
 import openpyxl
 import os, json, html, re, io, zipfile, urllib.parse
 
+try:
+    import segno  # 순수 파이썬 QR 코드 생성 (의존성 없음)
+    _HAS_SEGNO = True
+except ImportError:
+    _HAS_SEGNO = False
+
 app = Flask(__name__)
 
 # ─── 캐시 (메모리) ──────────────────────────────────────
@@ -71,6 +77,95 @@ def get_doc_type(filename):
     if 'KPI' in fn or 'CAL' in fn or 'AUDIT' in fn or \
        'CERT' in fn or 'MAP' in fn or 'RISK' in fn:       return '통합관리', '#7030A0'
     return '문서', '#595959'
+
+
+# ─────────────────────────────────────────────────────
+# 📷 바코드 / QR 코드 조회 기능
+# ─────────────────────────────────────────────────────
+def extract_doc_code(filename):
+    """파일명에서 문서코드(첫 '_' 앞 부분) 추출. 예: QMS-G-001"""
+    base = filename.rsplit('.', 1)[0]
+    return base.split('_', 1)[0].strip().upper()
+
+
+def build_doc_index():
+    """전체 문서를 스캔하여 조회용 인덱스 생성"""
+    index = []
+    for std_key, info in STANDARD_INFO.items():
+        std_path = os.path.join(DOCS_ROOT, std_key)
+        if not os.path.isdir(std_path):
+            continue
+        for fname in sorted(os.listdir(std_path)):
+            if not (fname.endswith('.docx') or fname.endswith('.xlsx')):
+                continue
+            dtype, dcolor = get_doc_type(fname)
+            index.append({
+                'std': std_key,
+                'std_name': info['name'],
+                'code': extract_doc_code(fname),
+                'name': fname,
+                'display': fname.replace('.docx', '').replace('.xlsx', ''),
+                'type': dtype,
+                'color': dcolor,
+                'ext': fname.rsplit('.', 1)[-1].upper(),
+            })
+    return index
+
+
+def normalize_scan(raw):
+    """스캔된 원본 값을 조회 키로 정규화.
+    - URL 이면 code/q/d 파라미터 또는 마지막 경로 세그먼트 추출
+    - 그 외에는 원본 텍스트 사용
+    """
+    raw = (raw or '').strip()
+    if not raw:
+        return ''
+    if '://' in raw or raw.startswith('/'):
+        try:
+            parsed = urllib.parse.urlparse(raw)
+            qs = urllib.parse.parse_qs(parsed.query)
+            for key in ('code', 'q', 'd'):
+                if qs.get(key):
+                    return qs[key][0].strip()
+            segs = [s for s in parsed.path.split('/') if s]
+            if segs:
+                return urllib.parse.unquote(segs[-1]).strip()
+        except Exception:
+            pass
+    return raw
+
+
+def lookup_code(raw):
+    """스캔/입력된 코드를 해석하여 관련 문서 정보를 반환"""
+    code = normalize_scan(raw)
+    cl = code.lower()
+    index = build_doc_index()
+
+    if not cl:
+        return {'kind': 'empty', 'query': code, 'results': []}
+
+    # 1) 규격 키 / 배지 매칭 (예: ISO9001, QMS, IMS)
+    for std_key, info in STANDARD_INFO.items():
+        if cl == std_key.lower() or cl == info['badge'].lower():
+            files = [d for d in index if d['std'] == std_key]
+            std = {'key': std_key, 'name': info['name'], 'icon': info['icon'],
+                   'color': info['color'], 'badge': info['badge'], 'count': len(files)}
+            return {'kind': 'standard', 'query': code, 'standard': std, 'results': files}
+
+    # 2) 문서코드 정확 매칭 (예: QMS-G-001)
+    matches = [d for d in index if d['code'].lower() == cl]
+    if matches:
+        return {'kind': 'document', 'query': code, 'results': matches}
+
+    # 3) 파일명 / 코드 부분 일치
+    matches = [d for d in index if cl in d['name'].lower() or cl in d['code'].lower()]
+    if matches:
+        return {'kind': 'search', 'query': code, 'results': matches[:40]}
+
+    # 4) 표시명 / 규격명 키워드 검색
+    matches = [d for d in index
+               if cl in d['display'].lower() or cl in d['std_name'].lower()]
+    return {'kind': 'search' if matches else 'none', 'query': code, 'results': matches[:40]}
 
 
 def docx_to_html(path):
@@ -416,6 +511,34 @@ def api_search():
 
 
 # ─────────────────────────────────────────────────────
+# 📷 바코드/QR 조회 API & QR 이미지 생성
+# ─────────────────────────────────────────────────────
+@app.route('/api/lookup')
+def api_lookup():
+    """스캔된 코드(문서코드/규격/URL/검색어)로 관련 문서 조회"""
+    raw = request.args.get('code', '') or request.args.get('q', '')
+    return jsonify(lookup_code(raw))
+
+
+@app.route('/api/qr')
+def api_qr():
+    """주어진 data 문자열을 QR 코드(SVG)로 생성"""
+    data = request.args.get('data', '').strip()
+    if not data:
+        return '조회할 data 파라미터가 필요합니다', 400
+    if not _HAS_SEGNO:
+        return 'QR 생성 모듈(segno)이 설치되지 않았습니다', 503
+    try:
+        qr = segno.make(data, error='m')
+    except Exception as e:
+        return f'QR 생성 실패: {e}', 400
+    buff = io.BytesIO()
+    qr.save(buff, kind='svg', scale=6, border=2, dark='#1F3864', light='#ffffff')
+    return Response(buff.getvalue(), mimetype='image/svg+xml',
+                    headers={'Cache-Control': 'public, max-age=86400'})
+
+
+# ─────────────────────────────────────────────────────
 # 메인 페이지 HTML
 # ─────────────────────────────────────────────────────
 HTML_TEMPLATE = r'''<!DOCTYPE html>
@@ -467,6 +590,13 @@ body { font-family: 'Malgun Gothic','맑은 고딕',sans-serif; background:#f0f2
 .search-item:hover { background:var(--brand-light); }
 .search-item-empty { padding:12px 14px; color:#aaa; font-size:13px; text-align:center; }
 .s-type { font-size:10px; padding:2px 6px; border-radius:4px; color:#fff; white-space:nowrap; }
+.scan-btn {
+  display:flex; align-items:center; gap:5px; flex-shrink:0;
+  background:rgba(255,255,255,.18); color:#fff; text-decoration:none;
+  padding:7px 13px; border-radius:18px; font-size:13px; font-weight:600;
+  transition:.15s; white-space:nowrap;
+}
+.scan-btn:hover { background:rgba(255,255,255,.30); }
 .header-stats { font-size:11px; opacity:.85; white-space:nowrap; display:flex; gap:10px; }
 .stat-item { text-align:center; }
 .stat-item strong { display:block; font-size:17px; font-weight:800; }
@@ -637,6 +767,7 @@ body { font-family: 'Malgun Gothic','맑은 고딕',sans-serif; background:#f0f2
     <input type="text" id="searchInput" placeholder="문서명 검색... (2자 이상)" autocomplete="off">
     <div class="search-results" id="searchResults"></div>
   </div>
+  <a href="/scan" class="scan-btn" title="바코드/QR 스캔">📷 <span>스캔</span></a>
   <div class="header-stats" id="headerStats">
     <div class="stat-item"><strong id="statTotal">-</strong>총 문서</div>
     <div class="stat-item"><strong id="statWord">-</strong>Word</div>
@@ -967,6 +1098,331 @@ init();
 </script>
 </body>
 </html>'''
+
+# ─────────────────────────────────────────────────────
+# 📷 모바일 바코드/QR 스캐너 페이지
+# ─────────────────────────────────────────────────────
+SCAN_TEMPLATE = r'''<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>📷 문서 바코드/QR 스캔 | 한영피엔에스 IMS</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+:root { --brand:#1F3864; --brand-mid:#2E75B6; --brand-light:#D6E4F0; }
+body { font-family:'Malgun Gothic','맑은 고딕',-apple-system,sans-serif;
+       background:#f0f2f5; color:#222; padding-bottom:40px; }
+.topbar {
+  position:sticky; top:0; z-index:50; background:var(--brand); color:#fff;
+  display:flex; align-items:center; gap:10px; padding:13px 16px;
+  box-shadow:0 2px 8px rgba(0,0,0,.3);
+}
+.topbar a { color:#fff; text-decoration:none; font-size:22px; line-height:1; }
+.topbar h1 { font-size:16px; font-weight:700; }
+.topbar h1 span { display:block; font-size:10px; opacity:.7; font-weight:400; }
+.wrap { max-width:560px; margin:0 auto; padding:16px; }
+
+.scanner-card {
+  background:#000; border-radius:14px; overflow:hidden; position:relative;
+  box-shadow:0 4px 18px rgba(0,0,0,.25); margin-bottom:14px;
+}
+#reader { width:100%; min-height:60px; }
+#reader video { width:100% !important; display:block; }
+.scanner-hint {
+  text-align:center; color:#cfe0f5; font-size:13px; padding:12px;
+}
+.btn {
+  display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
+  border:none; border-radius:11px; padding:15px; font-size:16px; font-weight:700;
+  cursor:pointer; transition:.15s;
+}
+.btn-primary { background:var(--brand); color:#fff; }
+.btn-primary:active { background:#16294a; }
+.btn-stop { background:#b02a2a; color:#fff; }
+.btn-ghost { background:#fff; color:var(--brand); border:1.5px solid var(--brand-light); }
+
+.manual { display:flex; gap:8px; margin:14px 0; }
+.manual input {
+  flex:1; padding:13px 14px; border:1.5px solid #d0d7e2; border-radius:11px;
+  font-size:15px; outline:none;
+}
+.manual input:focus { border-color:var(--brand-mid); }
+.manual button { flex-shrink:0; width:auto; padding:13px 18px; }
+
+.status {
+  text-align:center; font-size:13px; color:#667; margin:6px 0 14px;
+  min-height:18px;
+}
+.status.err { color:#b02a2a; font-weight:600; }
+
+/* ─ 결과 ─ */
+.result-head {
+  display:flex; align-items:center; gap:10px; margin:18px 0 10px;
+  padding-bottom:8px; border-bottom:2px solid var(--brand-light);
+}
+.result-head .scanned-code {
+  font-family:monospace; background:var(--brand-light); color:var(--brand);
+  padding:4px 9px; border-radius:6px; font-size:14px; font-weight:700;
+}
+.result-head small { color:#889; font-size:12px; }
+
+.card {
+  background:#fff; border-radius:12px; padding:14px; margin-bottom:11px;
+  box-shadow:0 2px 8px rgba(0,0,0,.07); border-left:4px solid #ccc;
+}
+.card .row1 { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px; }
+.badge { font-size:11px; padding:3px 8px; border-radius:5px; color:#fff; font-weight:700; }
+.ext { font-size:10px; padding:2px 6px; border-radius:4px; background:#eef1f6; color:#556; font-weight:700; }
+.card .title { font-size:15px; font-weight:700; color:#1a1a1a; line-height:1.35; margin:2px 0; }
+.card .meta { font-size:12px; color:#7a8594; }
+.card .actions { display:flex; gap:8px; margin-top:11px; flex-wrap:wrap; }
+.card .actions a, .card .actions button {
+  flex:1; min-width:90px; text-align:center; text-decoration:none;
+  padding:10px; border-radius:9px; font-size:13px; font-weight:700;
+  border:none; cursor:pointer;
+}
+.act-view { background:var(--brand); color:#fff; }
+.act-dl   { background:#eef3fb; color:var(--brand); }
+.act-qr   { background:#f3eefb; color:#6b2fae; }
+
+.empty { text-align:center; padding:40px 16px; color:#9aa3af; }
+.empty .big { font-size:46px; margin-bottom:10px; }
+
+/* 미리보기 모달 */
+.modal {
+  display:none; position:fixed; inset:0; z-index:200;
+  background:rgba(0,0,0,.55); padding:0;
+}
+.modal.show { display:block; }
+.modal-inner {
+  position:absolute; inset:0; background:#fff; display:flex; flex-direction:column;
+}
+.modal-head {
+  display:flex; align-items:center; gap:10px; padding:13px 16px;
+  background:var(--brand); color:#fff; flex-shrink:0;
+}
+.modal-head .t { flex:1; font-size:14px; font-weight:700;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.modal-head button { background:rgba(255,255,255,.2); color:#fff; border:none;
+  border-radius:8px; padding:8px 13px; font-size:14px; font-weight:700; cursor:pointer; }
+.modal-body { flex:1; overflow:auto; padding:16px; -webkit-overflow-scrolling:touch; }
+.modal-body img.qr { display:block; margin:20px auto; width:230px; height:230px; }
+.modal-body .qr-cap { text-align:center; color:#667; font-size:13px; line-height:1.6; }
+.modal-body .qr-cap code { background:#eef1f6; padding:2px 7px; border-radius:5px; }
+
+/* 문서 미리보기 내용 스타일 */
+.doc-content { font-size:14px; line-height:1.7; color:#222; }
+.doc-content h1,.doc-content h2,.doc-content h3 { margin:14px 0 8px; color:var(--brand); }
+.doc-content p { margin:6px 0; }
+.doc-content table { border-collapse:collapse; width:100%; margin:12px 0; font-size:12px; }
+.doc-content th,.doc-content td { border:1px solid #ccc; padding:6px 8px; text-align:left; }
+.doc-content th { background:var(--brand-light); }
+.error-box { color:#b02a2a; padding:20px; text-align:center; }
+.spinner { text-align:center; padding:40px; color:#889; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/" title="홈으로">←</a>
+  <h1>문서 바코드 · QR 스캔<span>(주)한영피엔에스 IMS</span></h1>
+</div>
+
+<div class="wrap">
+  <div class="scanner-card">
+    <div id="reader"></div>
+    <div class="scanner-hint" id="hint">아래 버튼을 눌러 카메라로 문서 라벨의 QR·바코드를 비춰주세요.</div>
+  </div>
+
+  <button class="btn btn-primary" id="startBtn">📷 카메라 스캔 시작</button>
+  <button class="btn btn-stop" id="stopBtn" style="display:none">■ 스캔 중지</button>
+
+  <div class="manual">
+    <input type="text" id="manualInput" placeholder="문서코드 직접 입력 (예: QMS-G-001)" autocomplete="off">
+    <button class="btn btn-primary" id="manualBtn">조회</button>
+  </div>
+
+  <div class="status" id="status"></div>
+  <div id="results"></div>
+</div>
+
+<!-- 미리보기 / QR 모달 -->
+<div class="modal" id="modal">
+  <div class="modal-inner">
+    <div class="modal-head">
+      <div class="t" id="modalTitle"></div>
+      <button id="modalClose">닫기 ✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const resultsEl = $('#results'), statusEl = $('#status'), hintEl = $('#hint');
+let html5Qr = null, scanning = false, lastCode = '', lastTs = 0;
+
+function setStatus(msg, isErr){
+  statusEl.textContent = msg || '';
+  statusEl.className = 'status' + (isErr ? ' err' : '');
+}
+
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function lookup(code){
+  if(!code) return;
+  setStatus('🔎 "' + code + '" 조회 중...');
+  resultsEl.innerHTML = '<div class="spinner">⏳ 조회 중...</div>';
+  try{
+    const r = await fetch('/api/lookup?code=' + encodeURIComponent(code));
+    const data = await r.json();
+    render(data);
+  }catch(e){
+    setStatus('조회 실패: ' + e.message, true);
+    resultsEl.innerHTML = '';
+  }
+}
+
+function render(data){
+  const items = data.results || [];
+  setStatus('');
+  let head = '<div class="result-head"><span class="scanned-code">' +
+    escapeHtml(data.query) + '</span><small>' + items.length + '건 조회됨</small></div>';
+
+  if(data.kind === 'none' || items.length === 0){
+    resultsEl.innerHTML = head +
+      '<div class="empty"><div class="big">🔍</div>' +
+      '<b>일치하는 문서가 없습니다.</b><br>' +
+      '문서코드(예: QMS-G-001)나 규격(예: ISO9001)을 확인해 주세요.</div>';
+    return;
+  }
+
+  if(data.kind === 'standard' && data.standard){
+    const s = data.standard;
+    head = '<div class="result-head"><span class="scanned-code" style="background:' +
+      s.color + ';color:#fff">' + s.icon + ' ' + escapeHtml(s.name) + '</span>' +
+      '<small>' + items.length + '개 문서</small></div>';
+  }
+
+  const cards = items.map(d => {
+    const url = '/api/preview/' + encodeURIComponent(d.std) + '/' + encodeURIComponent(d.name);
+    const dl  = '/api/download/' + encodeURIComponent(d.std) + '/' + encodeURIComponent(d.name);
+    return '<div class="card" style="border-left-color:' + d.color + '">' +
+      '<div class="row1">' +
+        '<span class="badge" style="background:' + d.color + '">' + escapeHtml(d.type) + '</span>' +
+        '<span class="ext">' + escapeHtml(d.ext) + '</span>' +
+        '<span class="meta">' + escapeHtml(d.code) + ' · ' + escapeHtml(d.std_name) + '</span>' +
+      '</div>' +
+      '<div class="title">' + escapeHtml(d.display) + '</div>' +
+      '<div class="actions">' +
+        '<button class="act-view" onclick="preview(\'' + d.std + '\',\'' +
+            encodeURIComponent(d.name) + '\',\'' + escapeHtml(d.display).replace(/'/g,"\\'") + '\')">📄 미리보기</button>' +
+        '<a class="act-dl" href="' + dl + '">⬇ 다운로드</a>' +
+        '<button class="act-qr" onclick="showQr(\'' + escapeHtml(d.code) + '\',\'' +
+            escapeHtml(d.display).replace(/'/g,"\\'") + '\')">🔳 QR</button>' +
+      '</div></div>';
+  }).join('');
+
+  resultsEl.innerHTML = head + cards;
+}
+
+async function preview(std, encName, title){
+  openModal(title);
+  $('#modalBody').innerHTML = '<div class="spinner">⏳ 문서 불러오는 중...</div>';
+  try{
+    const r = await fetch('/api/preview/' + encodeURIComponent(std) + '/' + encName);
+    const data = await r.json();
+    $('#modalBody').innerHTML = data.content ||
+      '<div class="error-box">' + (data.error || '미리보기를 불러올 수 없습니다') + '</div>';
+  }catch(e){
+    $('#modalBody').innerHTML = '<div class="error-box">불러오기 실패: ' + e.message + '</div>';
+  }
+}
+
+function showQr(code, title){
+  openModal('QR 코드 · ' + title);
+  // 휴대폰 기본 카메라로 스캔하면 이 페이지가 열리도록 전체 URL을 인코딩
+  const link = location.origin + '/scan?code=' + encodeURIComponent(code);
+  const qrSrc = '/api/qr?data=' + encodeURIComponent(link);
+  $('#modalBody').innerHTML =
+    '<img class="qr" src="' + qrSrc + '" alt="QR ' + escapeHtml(code) + '">' +
+    '<div class="qr-cap">문서코드 <code>' + escapeHtml(code) + '</code><br>' +
+    '이 QR을 인쇄해 문서·설비에 부착하면<br>휴대폰으로 스캔하여 바로 조회할 수 있습니다.</div>';
+}
+
+function openModal(title){
+  $('#modalTitle').textContent = title || '';
+  $('#modal').classList.add('show');
+}
+$('#modalClose').onclick = () => $('#modal').classList.remove('show');
+
+// ─ 카메라 스캔 ─
+function onScanSuccess(decodedText){
+  const now = Date.now();
+  if(decodedText === lastCode && now - lastTs < 2500) return; // 중복 방지
+  lastCode = decodedText; lastTs = now;
+  if(navigator.vibrate) navigator.vibrate(120);
+  lookup(decodedText);
+}
+
+async function startScan(){
+  if(scanning) return;
+  if(typeof Html5Qrcode === 'undefined'){
+    setStatus('스캐너 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하세요.', true);
+    return;
+  }
+  html5Qr = new Html5Qrcode('reader', { verbose:false });
+  const config = {
+    fps: 10,
+    qrbox: { width: 250, height: 250 },
+    formatsToSupport: undefined  // QR + 주요 1D 바코드 모두 지원
+  };
+  try{
+    await html5Qr.start({ facingMode: 'environment' }, config, onScanSuccess, ()=>{});
+    scanning = true;
+    hintEl.style.display = 'none';
+    $('#startBtn').style.display = 'none';
+    $('#stopBtn').style.display = 'flex';
+    setStatus('📷 코드를 화면 안에 비춰주세요...');
+  }catch(e){
+    setStatus('카메라를 시작할 수 없습니다: ' + e + ' (HTTPS 환경 및 카메라 권한 필요)', true);
+  }
+}
+
+async function stopScan(){
+  if(html5Qr && scanning){
+    try{ await html5Qr.stop(); html5Qr.clear(); }catch(e){}
+  }
+  scanning = false;
+  hintEl.style.display = 'block';
+  $('#startBtn').style.display = 'flex';
+  $('#stopBtn').style.display = 'none';
+  setStatus('');
+}
+
+$('#startBtn').onclick = startScan;
+$('#stopBtn').onclick = stopScan;
+$('#manualBtn').onclick = () => lookup($('#manualInput').value.trim());
+$('#manualInput').addEventListener('keydown', e => { if(e.key==='Enter') lookup(e.target.value.trim()); });
+
+// URL ?code= 로 진입(휴대폰 기본 카메라가 QR URL을 연 경우) → 자동 조회
+(function(){
+  const p = new URLSearchParams(location.search);
+  const c = p.get('code') || p.get('q');
+  if(c){ $('#manualInput').value = c; lookup(c); }
+})();
+</script>
+</body>
+</html>'''
+
+
+@app.route('/scan')
+def scan_page():
+    return render_template_string(SCAN_TEMPLATE)
+
 
 @app.route('/')
 def index():
