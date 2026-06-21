@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>영어 문법 마스터 · English Grammar Master</title>
+<style>
+  :root{
+    --bg:#0f172a; --bg2:#1e293b; --card:#ffffff; --primary:#4f46e5;
+    --primary-d:#4338ca; --accent:#06b6d4; --ok:#16a34a; --no:#dc2626;
+    --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --soft:#f1f5f9;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Segoe UI','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    background:linear-gradient(135deg,#0f172a 0%,#312e81 100%);
+    color:var(--ink); min-height:100vh; padding:24px 16px;
+  }
+  .wrap{max-width:960px;margin:0 auto}
+  header{text-align:center;color:#fff;margin-bottom:24px}
+  header h1{font-size:2rem;font-weight:800;letter-spacing:-.5px}
+  header p{opacity:.8;margin-top:6px;font-size:.95rem}
+  .bar{
+    display:flex;gap:10px;flex-wrap:wrap;justify-content:center;
+    background:rgba(255,255,255,.08);padding:10px;border-radius:14px;margin-bottom:20px;
+  }
+  .tab{
+    border:0;cursor:pointer;padding:10px 18px;border-radius:10px;font-size:.95rem;
+    font-weight:600;color:#cbd5e1;background:transparent;transition:.2s;
+  }
+  .tab:hover{color:#fff;background:rgba(255,255,255,.08)}
+  .tab.active{background:#fff;color:var(--primary)}
+  .panel{display:none;animation:fade .3s ease}
+  .panel.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .card{background:var(--card);border-radius:18px;padding:24px;box-shadow:0 20px 40px -20px rgba(0,0,0,.5);margin-bottom:18px}
+
+  /* 진도 요약 */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+  .stat{background:rgba(255,255,255,.95);border-radius:14px;padding:16px;text-align:center}
+  .stat .n{font-size:1.7rem;font-weight:800;color:var(--primary)}
+  .stat .l{font-size:.8rem;color:var(--muted);margin-top:2px}
+
+  /* 토픽 그리드 */
+  .topics{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+  .topic{
+    border:1px solid var(--line);border-radius:14px;padding:18px;cursor:pointer;
+    transition:.2s;background:#fff;display:flex;flex-direction:column;gap:6px;
+  }
+  .topic:hover{border-color:var(--primary);transform:translateY(-3px);box-shadow:0 12px 24px -12px rgba(79,70,229,.45)}
+  .topic .ic{font-size:1.6rem}
+  .topic .t{font-weight:700;font-size:1.05rem}
+  .topic .d{font-size:.82rem;color:var(--muted);line-height:1.4}
+  .topic .meta{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:.78rem;color:var(--muted)}
+  .pill{background:var(--soft);border-radius:999px;padding:3px 10px;font-weight:600}
+  .done{color:var(--ok)}
+
+  /* 레슨 보기 */
+  .lesson h2{font-size:1.5rem;margin-bottom:4px}
+  .lesson .sub{color:var(--muted);margin-bottom:18px}
+  .lesson h3{color:var(--primary);margin:22px 0 8px;font-size:1.15rem;border-left:4px solid var(--primary);padding-left:10px}
+  .lesson p{line-height:1.75;margin-bottom:10px}
+  .lesson ul{margin:0 0 12px 22px;line-height:1.8}
+  .ex{background:var(--soft);border-radius:12px;padding:14px 16px;margin:10px 0}
+  .ex .en{font-weight:600}
+  .ex .ko{color:var(--muted);font-size:.9rem;margin-top:2px}
+  .tip{background:#ecfeff;border:1px solid #a5f3fc;border-radius:12px;padding:12px 16px;margin:12px 0}
+  .tip b{color:#0e7490}
+  table.gt{width:100%;border-collapse:collapse;margin:12px 0;font-size:.92rem}
+  table.gt th,table.gt td{border:1px solid var(--line);padding:9px 12px;text-align:left}
+  table.gt th{background:var(--soft);font-weight:700}
+
+  .btn{
+    border:0;cursor:pointer;border-radius:10px;padding:11px 20px;font-size:.95rem;
+    font-weight:700;background:var(--primary);color:#fff;transition:.2s;
+  }
+  .btn:hover{background:var(--primary-d)}
+  .btn.ghost{background:var(--soft);color:var(--ink)}
+  .btn.ghost:hover{background:var(--line)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+
+  /* 퀴즈 */
+  .q{font-size:1.15rem;font-weight:700;margin:6px 0 14px;line-height:1.6}
+  .q .blank{color:var(--primary);font-weight:800}
+  .opts{display:grid;gap:10px}
+  .opt{
+    border:2px solid var(--line);border-radius:12px;padding:13px 16px;cursor:pointer;
+    font-size:1rem;background:#fff;transition:.15s;text-align:left;
+  }
+  .opt:hover{border-color:var(--primary);background:#f5f3ff}
+  .opt.correct{border-color:var(--ok);background:#f0fdf4;color:var(--ok);font-weight:700}
+  .opt.wrong{border-color:var(--no);background:#fef2f2;color:var(--no);font-weight:700}
+  .opt.disabled{pointer-events:none;opacity:.85}
+  .feedback{margin-top:14px;padding:14px 16px;border-radius:12px;font-size:.95rem;line-height:1.6;display:none}
+  .feedback.show{display:block}
+  .feedback.ok{background:#f0fdf4;border:1px solid #bbf7d0}
+  .feedback.no{background:#fef2f2;border:1px solid #fecaca}
+  .qhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;color:var(--muted);font-size:.9rem}
+  .progress{height:8px;background:var(--soft);border-radius:999px;overflow:hidden;margin-bottom:18px}
+  .progress i{display:block;height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));width:0;transition:.4s}
+  .score{text-align:center;padding:20px}
+  .score .big{font-size:3rem;font-weight:800;color:var(--primary)}
+  .badge{display:inline-block;background:var(--soft);border-radius:999px;padding:6px 16px;font-weight:700;margin-top:10px}
+  .hidden{display:none!important}
+  footer{text-align:center;color:rgba(255,255,255,.5);font-size:.8rem;margin-top:24px}
+  select.pick{padding:10px 14px;border-radius:10px;border:1px solid var(--line);font-size:.95rem;background:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📘 영어 문법 마스터</h1>
+    <p>English Grammar Master · 설명을 읽고 퀴즈로 확인하세요</p>
+  </header>
+
+  <div class="bar">
+    <button class="tab active" data-tab="home">🏠 학습 홈</button>
+    <button class="tab" data-tab="quiz">📝 퀴즈</button>
+    <button class="tab" data-tab="lesson" id="lessonTab" style="display:none">📖 레슨</button>
+  </div>
+
+  <!-- ===== 홈 ===== -->
+  <section class="panel active" id="home">
+    <div class="stats">
+      <div class="stat"><div class="n" id="stTopics">0</div><div class="l">완료한 레슨</div></div>
+      <div class="stat"><div class="n" id="stQuiz">0</div><div class="l">푼 퀴즈 수</div></div>
+      <div class="stat"><div class="n" id="stRate">0%</div><div class="l">정답률</div></div>
+    </div>
+    <div class="card">
+      <h2 style="margin-bottom:6px">문법 주제 선택</h2>
+      <p style="color:var(--muted);margin-bottom:18px">학습하고 싶은 주제를 골라 개념을 익힌 뒤 퀴즈에 도전하세요.</p>
+      <div class="topics" id="topicGrid"></div>
+    </div>
+  </section>
+
+  <!-- ===== 레슨 ===== -->
+  <section class="panel" id="lesson">
+    <div class="card lesson" id="lessonBody"></div>
+    <div class="row">
+      <button class="btn" id="goQuizBtn">이 주제 퀴즈 풀기 →</button>
+      <button class="btn ghost" onclick="showTab('home')">← 홈으로</button>
+    </div>
+  </section>
+
+  <!-- ===== 퀴즈 ===== -->
+  <section class="panel" id="quiz">
+    <div class="card">
+      <div id="quizIntro">
+        <h2 style="margin-bottom:10px">퀴즈 도전 📝</h2>
+        <p style="color:var(--muted);margin-bottom:16px">주제를 고르거나 전체 문제로 실력을 점검하세요.</p>
+        <div class="row" style="margin-top:0">
+          <select class="pick" id="quizPick"></select>
+          <button class="btn" id="startQuiz">시작하기</button>
+        </div>
+      </div>
+
+      <div id="quizRun" class="hidden">
+        <div class="qhead">
+          <span id="qCounter">1 / 5</span>
+          <span id="qScore">점수: 0</span>
+        </div>
+        <div class="progress"><i id="qBar"></i></div>
+        <div class="q" id="qText"></div>
+        <div class="opts" id="qOpts"></div>
+        <div class="feedback" id="qFeed"></div>
+        <div class="row">
+          <button class="btn hidden" id="nextQ">다음 문제 →</button>
+        </div>
+      </div>
+
+      <div id="quizDone" class="hidden">
+        <div class="score">
+          <div class="big" id="finalScore">0/0</div>
+          <div class="badge" id="finalBadge">결과</div>
+          <p style="color:var(--muted);margin-top:14px" id="finalMsg"></p>
+        </div>
+        <div class="row" style="justify-content:center">
+          <button class="btn" id="retryQuiz">다시 풀기</button>
+          <button class="btn ghost" onclick="showTab('home')">홈으로</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>© 영어 문법 마스터 · 학습 기록은 이 브라우저에만 저장됩니다</footer>
+</div>
+
+<script>
+/* ============================================================
+   데이터: 문법 주제 + 레슨 + 퀴즈
+   ============================================================ */
+const TOPICS = [
+  {
+    id:"be", icon:"🔤", title:"be동사", desc:"am / is / are 의 기본",
+    lesson:`
+      <h2>be동사 (am / is / are)</h2>
+      <div class="sub">'~이다, ~에 있다'를 나타내는 가장 기본 동사</div>
+      <h3>1. 주어에 따른 형태</h3>
+      <table class="gt"><tr><th>주어</th><th>be동사</th><th>예시</th></tr>
+        <tr><td>I</td><td>am</td><td>I am a student.</td></tr>
+        <tr><td>You / We / They</td><td>are</td><td>They are happy.</td></tr>
+        <tr><td>He / She / It</td><td>is</td><td>She is a doctor.</td></tr></table>
+      <h3>2. 부정문과 의문문</h3>
+      <div class="ex"><div class="en">She is not (isn't) tired.</div><div class="ko">그녀는 피곤하지 않다. → be동사 뒤에 not</div></div>
+      <div class="ex"><div class="en">Are you ready?</div><div class="ko">너 준비됐어? → be동사를 주어 앞으로</div></div>
+      <div class="tip"><b>TIP</b> 한 문장에 일반동사와 be동사를 같이 쓰지 마세요. (✕ I am go) → (○ I go / I am going)</div>
+    `,
+    quiz:[
+      {q:"I ___ a teacher.", o:["am","is","are","be"], a:0, e:"주어가 I일 때는 am을 씁니다."},
+      {q:"She ___ very kind.", o:["am","are","is","do"], a:2, e:"3인칭 단수(She)는 is."},
+      {q:"They ___ at home now.", o:["is","am","be","are"], a:3, e:"복수 주어(They)는 are."},
+      {q:"___ you a nurse?", o:["Do","Are","Is","Am"], a:1, e:"be동사 의문문은 Are you ~? 형태."},
+      {q:"It ___ not my book.", o:["are","am","is","do"], a:2, e:"It은 3인칭 단수라 is, 부정은 is not."}
+    ]
+  },
+  {
+    id:"tense", icon:"⏳", title:"시제 (현재·과거·미래)", desc:"동사의 시간 표현",
+    lesson:`
+      <h2>기본 시제</h2>
+      <div class="sub">동작이 일어나는 시간을 동사로 표현</div>
+      <h3>1. 현재 / 과거 / 미래</h3>
+      <table class="gt"><tr><th>시제</th><th>형태</th><th>예시</th></tr>
+        <tr><td>현재</td><td>동사원형/-s</td><td>He works every day.</td></tr>
+        <tr><td>과거</td><td>동사+ed / 불규칙</td><td>He worked yesterday.</td></tr>
+        <tr><td>미래</td><td>will + 동사원형</td><td>He will work tomorrow.</td></tr></table>
+      <h3>2. 3인칭 단수 현재 -s</h3>
+      <div class="ex"><div class="en">She plays the piano.</div><div class="ko">주어가 He/She/It이면 동사에 -s/-es</div></div>
+      <h3>3. 불규칙 과거형</h3>
+      <div class="ex"><div class="en">go → went, eat → ate, have → had, see → saw</div><div class="ko">자주 쓰는 불규칙 동사는 암기 필수</div></div>
+      <div class="tip"><b>TIP</b> 과거를 알리는 단어: yesterday, ago, last ~ / 미래: tomorrow, next ~, soon</div>
+    `,
+    quiz:[
+      {q:"He ___ to school every morning.", o:["go","goes","went","going"], a:1, e:"3인칭 단수 현재는 goes."},
+      {q:"We ___ a movie last night.", o:["watch","watches","watched","will watch"], a:2, e:"last night → 과거 watched."},
+      {q:"I ___ call you tomorrow.", o:["will","did","am","was"], a:0, e:"tomorrow → 미래 will."},
+      {q:"She ___ breakfast an hour ago.", o:["eats","eat","ate","eaten"], a:2, e:"ago → 과거, eat의 과거는 ate."},
+      {q:"They ___ soccer every weekend.", o:["plays","play","played","playing"], a:1, e:"복수 주어 현재는 동사원형 play."}
+    ]
+  },
+  {
+    id:"prog", icon:"🏃", title:"진행형 (be + -ing)", desc:"지금 하고 있는 동작",
+    lesson:`
+      <h2>진행형 (be + 동사-ing)</h2>
+      <div class="sub">'~하고 있는 중이다'를 나타냄</div>
+      <h3>1. 현재진행형</h3>
+      <div class="ex"><div class="en">I am studying English now.</div><div class="ko">나는 지금 영어를 공부하고 있다.</div></div>
+      <h3>2. -ing 만드는 규칙</h3>
+      <ul>
+        <li>대부분: 동사 + ing (play → playing)</li>
+        <li>e로 끝나면 e 빼고 + ing (make → making)</li>
+        <li>단모음+단자음: 자음 한 번 더 + ing (run → running)</li>
+      </ul>
+      <h3>3. 과거진행형</h3>
+      <div class="ex"><div class="en">She was sleeping at 10 p.m.</div><div class="ko">be동사를 과거(was/were)로</div></div>
+      <div class="tip"><b>TIP</b> like, know, want, have(소유) 같은 상태동사는 보통 진행형으로 쓰지 않습니다.</div>
+    `,
+    quiz:[
+      {q:"Look! The baby ___ now.", o:["sleep","sleeps","is sleeping","slept"], a:2, e:"지금(now) 진행 중 → is sleeping."},
+      {q:"They ___ TV when I came in.", o:["watch","were watching","watches","watched"], a:1, e:"과거의 진행 → were watching."},
+      {q:"He is ___ a letter.", o:["write","writes","writing","wrote"], a:2, e:"write → e 빼고 writing."},
+      {q:"I am ___ for the bus.", o:["wait","waiting","waits","waited"], a:1, e:"be + -ing → waiting."},
+      {q:"We ___ dinner at 7 yesterday.", o:["are having","were having","have","has"], a:1, e:"어제 7시에 진행 → were having."}
+    ]
+  },
+  {
+    id:"perfect", icon:"✅", title:"현재완료 (have + p.p.)", desc:"경험·완료·계속",
+    lesson:`
+      <h2>현재완료 (have/has + 과거분사)</h2>
+      <div class="sub">과거의 일이 현재와 연결될 때</div>
+      <h3>주요 용법</h3>
+      <table class="gt"><tr><th>용법</th><th>예시</th><th>자주 쓰는 말</th></tr>
+        <tr><td>경험</td><td>I have been to Japan.</td><td>ever, never, before</td></tr>
+        <tr><td>완료</td><td>She has just left.</td><td>just, already, yet</td></tr>
+        <tr><td>계속</td><td>We have lived here for 5 years.</td><td>for, since</td></tr></table>
+      <h3>형태</h3>
+      <div class="ex"><div class="en">He has finished his homework.</div><div class="ko">has + p.p.(과거분사). 3인칭 단수는 has</div></div>
+      <div class="tip"><b>TIP</b> 명확한 과거 시점(yesterday, ago, last year)과는 함께 쓸 수 없습니다. 그때는 과거시제!</div>
+    `,
+    quiz:[
+      {q:"I have ___ this movie before.", o:["see","saw","seen","seeing"], a:2, e:"have + p.p. → seen."},
+      {q:"She has ___ finished her work.", o:["yet","just","ago","yesterday"], a:1, e:"완료 just와 자연스럽게 결합."},
+      {q:"We have lived here ___ 2020.", o:["for","since","ago","in"], a:1, e:"특정 시점부터 → since."},
+      {q:"___ you ever been to Paris?", o:["Do","Have","Are","Did"], a:1, e:"경험을 묻는 현재완료 의문문 Have you ~?"},
+      {q:"He ___ his keys. He can't find them.", o:["lost","has lost","lose","loses"], a:1, e:"과거 일이 현재에 영향 → has lost."}
+    ]
+  },
+  {
+    id:"modal", icon:"🔑", title:"조동사 (can·must·should)", desc:"능력·의무·추측",
+    lesson:`
+      <h2>조동사 (Modal Verbs)</h2>
+      <div class="sub">동사 앞에서 의미를 더해줌 · 뒤에는 항상 동사원형</div>
+      <table class="gt"><tr><th>조동사</th><th>의미</th><th>예시</th></tr>
+        <tr><td>can</td><td>~할 수 있다 (능력/허가)</td><td>I can swim.</td></tr>
+        <tr><td>must</td><td>~해야 한다 (강한 의무)</td><td>You must stop.</td></tr>
+        <tr><td>should</td><td>~하는 게 좋다 (충고)</td><td>You should rest.</td></tr>
+        <tr><td>may</td><td>~해도 된다 / ~일지도</td><td>You may go.</td></tr>
+        <tr><td>will</td><td>~할 것이다 (미래/의지)</td><td>I will help you.</td></tr></table>
+      <div class="tip"><b>TIP</b> 조동사 뒤에는 to 없이 동사원형! (✕ can to go) (○ can go). 부정은 조동사 + not.</div>
+    `,
+    quiz:[
+      {q:"You ___ wear a helmet. It's the law.", o:["can","must","may","could"], a:1, e:"강한 의무 → must."},
+      {q:"I ___ speak three languages.", o:["must","should","can","may"], a:2, e:"능력 → can."},
+      {q:"You look tired. You ___ get some sleep.", o:["should","must not","can't","may not"], a:0, e:"충고 → should."},
+      {q:"Can she ___ the piano?", o:["plays","to play","playing","play"], a:3, e:"조동사 뒤는 동사원형 play."},
+      {q:"It's cloudy. It ___ rain later.", o:["must","may","should","can"], a:1, e:"약한 추측 → may."}
+    ]
+  },
+  {
+    id:"article", icon:"📰", title:"관사 (a / an / the)", desc:"명사 앞 관사 규칙",
+    lesson:`
+      <h2>관사 (a / an / the)</h2>
+      <div class="sub">명사 앞에 붙어 '하나의' 또는 '그'를 표현</div>
+      <h3>1. a vs an</h3>
+      <ul>
+        <li><b>a</b> + 자음 소리: a book, a university (유 발음)</li>
+        <li><b>an</b> + 모음 소리: an apple, an hour (h 묵음)</li>
+      </ul>
+      <h3>2. a/an vs the</h3>
+      <div class="ex"><div class="en">I saw a dog. The dog was big.</div><div class="ko">처음 언급은 a, 다시 언급(특정)은 the</div></div>
+      <h3>3. the를 쓰는 경우</h3>
+      <ul>
+        <li>세상에 하나뿐인 것: the sun, the moon</li>
+        <li>서로 아는 특정한 것: Close the door.</li>
+      </ul>
+      <div class="tip"><b>TIP</b> 셀 수 없는 명사·복수 일반 개념엔 a/an을 안 씁니다. (water, I like dogs.)</div>
+    `,
+    quiz:[
+      {q:"I ate ___ apple this morning.", o:["a","an","the","-"], a:1, e:"apple은 모음 소리 → an."},
+      {q:"She is ___ honest person.", o:["a","an","the","-"], a:1, e:"honest의 h는 묵음, 모음 소리 → an."},
+      {q:"Look at ___ sun. It's beautiful.", o:["a","an","the","-"], a:2, e:"유일한 것 → the sun."},
+      {q:"He bought a car. ___ car is red.", o:["A","An","The","-"], a:2, e:"앞서 언급한 특정 차 → The."},
+      {q:"I need ___ information.", o:["a","an","the","-"], a:3, e:"information은 셀 수 없는 명사, 관사 없음."}
+    ]
+  },
+  {
+    id:"prep", icon:"📍", title:"전치사 (in·on·at)", desc:"시간·장소 전치사",
+    lesson:`
+      <h2>전치사 (in / on / at)</h2>
+      <div class="sub">시간과 장소를 나타내는 핵심 전치사</div>
+      <h3>1. 시간</h3>
+      <table class="gt"><tr><th>전치사</th><th>쓰임</th><th>예시</th></tr>
+        <tr><td>at</td><td>정확한 시각</td><td>at 7 o'clock, at noon</td></tr>
+        <tr><td>on</td><td>요일·날짜</td><td>on Monday, on May 5th</td></tr>
+        <tr><td>in</td><td>월·연도·계절</td><td>in July, in 2025, in winter</td></tr></table>
+      <h3>2. 장소</h3>
+      <table class="gt"><tr><th>전치사</th><th>쓰임</th><th>예시</th></tr>
+        <tr><td>at</td><td>한 지점</td><td>at the bus stop</td></tr>
+        <tr><td>on</td><td>표면 위</td><td>on the table</td></tr>
+        <tr><td>in</td><td>공간 내부</td><td>in the room</td></tr></table>
+      <div class="tip"><b>TIP</b> 시간 폭이 좁을수록 at, 넓을수록 in으로 기억하세요. (at→on→in)</div>
+    `,
+    quiz:[
+      {q:"The meeting is ___ 3 p.m.", o:["in","on","at","to"], a:2, e:"정확한 시각 → at."},
+      {q:"My birthday is ___ October.", o:["at","on","in","by"], a:2, e:"월 → in."},
+      {q:"We have a test ___ Monday.", o:["in","on","at","to"], a:1, e:"요일 → on."},
+      {q:"The keys are ___ the table.", o:["in","on","at","to"], a:1, e:"표면 위 → on."},
+      {q:"She lives ___ Seoul.", o:["at","on","in","by"], a:2, e:"도시(공간 내부) → in."}
+    ]
+  },
+  {
+    id:"compare", icon:"⚖️", title:"비교급·최상급", desc:"-er / -est / more",
+    lesson:`
+      <h2>비교급 & 최상급</h2>
+      <div class="sub">둘을 비교(비교급), 셋 이상 중 최고(최상급)</div>
+      <h3>1. 규칙</h3>
+      <table class="gt"><tr><th>원급</th><th>비교급</th><th>최상급</th></tr>
+        <tr><td>tall</td><td>taller</td><td>tallest</td></tr>
+        <tr><td>big</td><td>bigger</td><td>biggest</td></tr>
+        <tr><td>famous</td><td>more famous</td><td>most famous</td></tr></table>
+      <p>짧은 형용사는 -er/-est, 긴 형용사(3음절↑)는 more/most를 붙입니다.</p>
+      <h3>2. 불규칙</h3>
+      <div class="ex"><div class="en">good → better → best, bad → worse → worst</div></div>
+      <h3>3. 문장 패턴</h3>
+      <div class="ex"><div class="en">She is taller than me.</div><div class="ko">비교급 + than</div></div>
+      <div class="ex"><div class="en">It is the most expensive car.</div><div class="ko">the + 최상급</div></div>
+      <div class="tip"><b>TIP</b> 최상급 앞에는 보통 the를 붙입니다.</div>
+    `,
+    quiz:[
+      {q:"This box is ___ than that one.", o:["heavy","heavier","heaviest","more heavy"], a:1, e:"비교급 heavy→heavier."},
+      {q:"He is the ___ student in the class.", o:["smart","smarter","smartest","more smart"], a:2, e:"최상급 → smartest."},
+      {q:"Today is ___ than yesterday.", o:["good","better","best","gooder"], a:1, e:"good의 비교급은 better."},
+      {q:"This is the ___ interesting book.", o:["more","most","much","very"], a:1, e:"긴 형용사 최상급 → most."},
+      {q:"My bag is ___ expensive than yours.", o:["more","most","much","very"], a:0, e:"긴 형용사 비교급 → more expensive."}
+    ]
+  }
+];
+
+/* ============================================================
+   상태 & 저장
+   ============================================================ */
+const store = {
+  load(){ try{return JSON.parse(localStorage.getItem('egm')||'{}')}catch(e){return {}} },
+  save(d){ localStorage.setItem('egm', JSON.stringify(d)); }
+};
+let state = Object.assign({done:{}, quizTaken:0, quizCorrect:0}, store.load());
+function persist(){ store.save(state); renderStats(); renderTopics(); }
+
+/* ============================================================
+   탭 전환
+   ============================================================ */
+function showTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id===name));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>showTab(t.dataset.tab)));
+
+/* ============================================================
+   홈: 통계 + 토픽 그리드
+   ============================================================ */
+function renderStats(){
+  document.getElementById('stTopics').textContent = Object.keys(state.done).length;
+  document.getElementById('stQuiz').textContent = state.quizTaken;
+  const rate = state.quizTaken ? Math.round(state.quizCorrect/state.quizTaken*100) : 0;
+  document.getElementById('stRate').textContent = rate + '%';
+}
+function renderTopics(){
+  const grid = document.getElementById('topicGrid');
+  grid.innerHTML = '';
+  TOPICS.forEach(tp=>{
+    const done = state.done[tp.id];
+    const el = document.createElement('div');
+    el.className='topic';
+    el.innerHTML = `
+      <div class="ic">${tp.icon}</div>
+      <div class="t">${tp.title}</div>
+      <div class="d">${tp.desc}</div>
+      <div class="meta">
+        <span class="pill">${tp.quiz.length}문제</span>
+        <span class="${done?'done':''}">${done?'✓ 학습완료':'학습 시작'}</span>
+      </div>`;
+    el.addEventListener('click',()=>openLesson(tp.id));
+    grid.appendChild(el);
+  });
+}
+
+/* ============================================================
+   레슨
+   ============================================================ */
+let currentTopic = null;
+function openLesson(id){
+  const tp = TOPICS.find(t=>t.id===id);
+  currentTopic = tp;
+  document.getElementById('lessonBody').innerHTML = tp.lesson;
+  document.getElementById('lessonTab').style.display='';
+  showTab('lesson');
+  // 레슨 열람 = 학습 완료로 기록
+  if(!state.done[id]){ state.done[id]=true; persist(); }
+}
+document.getElementById('goQuizBtn').addEventListener('click',()=>{
+  if(currentTopic){ document.getElementById('quizPick').value = currentTopic.id; startQuiz(currentTopic.id); showTab('quiz'); }
+});
+
+/* ============================================================
+   퀴즈
+   ============================================================ */
+function buildQuizPicker(){
+  const sel = document.getElementById('quizPick');
+  sel.innerHTML = '<option value="all">🎯 전체 랜덤 (10문제)</option>';
+  TOPICS.forEach(tp=>{
+    sel.innerHTML += `<option value="${tp.id}">${tp.icon} ${tp.title}</option>`;
+  });
+}
+let quiz = {list:[], idx:0, score:0};
+
+function gatherQuestions(topicId){
+  if(topicId==='all'){
+    const all = [];
+    TOPICS.forEach(tp=> tp.quiz.forEach(q=> all.push(q)));
+    return shuffle(all).slice(0,10);
+  }
+  const tp = TOPICS.find(t=>t.id===topicId);
+  return tp ? tp.quiz.slice() : [];
+}
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+function startQuiz(topicId){
+  quiz.list = gatherQuestions(topicId);
+  quiz.idx = 0; quiz.score = 0;
+  document.getElementById('quizIntro').classList.add('hidden');
+  document.getElementById('quizDone').classList.add('hidden');
+  document.getElementById('quizRun').classList.remove('hidden');
+  renderQuestion();
+}
+document.getElementById('startQuiz').addEventListener('click',()=> startQuiz(document.getElementById('quizPick').value));
+document.getElementById('retryQuiz').addEventListener('click',()=>{
+  document.getElementById('quizDone').classList.add('hidden');
+  document.getElementById('quizIntro').classList.remove('hidden');
+});
+
+function renderQuestion(){
+  const q = quiz.list[quiz.idx];
+  document.getElementById('qCounter').textContent = `${quiz.idx+1} / ${quiz.list.length}`;
+  document.getElementById('qScore').textContent = `점수: ${quiz.score}`;
+  document.getElementById('qBar').style.width = (quiz.idx/quiz.list.length*100)+'%';
+  // 빈칸 강조
+  document.getElementById('qText').innerHTML = q.q.replace(/___/g,'<span class="blank">_____</span>');
+  const opts = document.getElementById('qOpts');
+  opts.innerHTML='';
+  q.o.forEach((opt,i)=>{
+    const b=document.createElement('button');
+    b.className='opt'; b.textContent=opt;
+    b.addEventListener('click',()=>answer(i,b));
+    opts.appendChild(b);
+  });
+  const fb=document.getElementById('qFeed'); fb.className='feedback'; fb.innerHTML='';
+  document.getElementById('nextQ').classList.add('hidden');
+}
+
+function answer(i, btn){
+  const q = quiz.list[quiz.idx];
+  const buttons = document.querySelectorAll('#qOpts .opt');
+  buttons.forEach(b=>b.classList.add('disabled'));
+  const ok = i===q.a;
+  if(ok){ btn.classList.add('correct'); quiz.score++; }
+  else { btn.classList.add('wrong'); buttons[q.a].classList.add('correct'); }
+  document.getElementById('qScore').textContent = `점수: ${quiz.score}`;
+  // 통계 기록
+  state.quizTaken++; if(ok) state.quizCorrect++; persist();
+  const fb=document.getElementById('qFeed');
+  fb.className='feedback show '+(ok?'ok':'no');
+  fb.innerHTML = (ok?'✅ <b>정답!</b> ':'❌ <b>오답</b> 정답: <b>'+q.o[q.a]+'</b><br>') + q.e;
+  document.getElementById('nextQ').classList.remove('hidden');
+}
+
+document.getElementById('nextQ').addEventListener('click',()=>{
+  quiz.idx++;
+  if(quiz.idx < quiz.list.length){ renderQuestion(); }
+  else finishQuiz();
+});
+
+function finishQuiz(){
+  document.getElementById('quizRun').classList.add('hidden');
+  document.getElementById('quizDone').classList.remove('hidden');
+  const total = quiz.list.length, sc = quiz.score;
+  document.getElementById('finalScore').textContent = `${sc}/${total}`;
+  const pct = sc/total;
+  let badge, msg;
+  if(pct===1){ badge='🏆 완벽해요!'; msg='모든 문제를 맞혔습니다. 다음 주제에 도전해보세요!'; }
+  else if(pct>=0.7){ badge='👍 잘했어요'; msg='훌륭합니다. 틀린 부분만 복습하면 완벽해요.'; }
+  else if(pct>=0.4){ badge='📚 조금 더!'; msg='레슨을 다시 읽고 도전하면 금방 좋아질 거예요.'; }
+  else { badge='💪 다시 도전'; msg='개념 설명을 천천히 읽어본 뒤 다시 풀어보세요.'; }
+  document.getElementById('finalBadge').textContent = badge;
+  document.getElementById('finalMsg').textContent = msg;
+}
+
+/* ============================================================
+   초기화
+   ============================================================ */
+buildQuizPicker();
+renderStats();
+renderTopics();
+</script>
+</body>
+</html>
