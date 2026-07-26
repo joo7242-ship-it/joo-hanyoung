@@ -3,15 +3,15 @@
   "short_name": "일본번역",
   "description": "일본여행 필수 일본어 번역기 · 회화집",
   "lang": "ko",
-  "start_url": "/japan-travel/",
-  "scope": "/japan-travel/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#F7F5F2",
   "theme_color": "#C0392B",
   "icons": [
-    { "src": "/japan-travel/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/japan-travel/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/japan-travel/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
