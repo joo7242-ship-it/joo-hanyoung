@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#C0392B">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="일본번역">
+<title>🇯🇵 일본여행 번역기</title>
+<style>
+  :root {
+    --primary: #C0392B;
+    --primary-dark: #96281B;
+    --primary-light: #FDEDEC;
+    --accent: #2C3E50;
+    --bg: #F7F5F2;
+    --card: #FFFFFF;
+    --text: #2C3E50;
+    --text-sub: #7F8C8D;
+    --border: #E8E4DE;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --radius: 16px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    max-width: 520px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* ───── 헤더 ───── */
+  header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: #fff;
+    padding: 18px 20px 14px;
+    border-radius: 0 0 20px 20px;
+    box-shadow: var(--shadow);
+    position: sticky; top: 0; z-index: 50;
+  }
+  header h1 { font-size: 19px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+  header p { font-size: 12px; opacity: 0.85; margin-top: 3px; }
+
+  /* ───── 메인 ───── */
+  main { flex: 1; padding: 16px 14px 90px; overflow-y: auto; }
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn .25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: none;} }
+
+  /* ───── 하단 탭바 ───── */
+  nav {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 520px;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+    z-index: 50;
+  }
+  nav button {
+    flex: 1; background: none; border: none; cursor: pointer;
+    font-family: inherit; font-size: 11px; color: var(--text-sub);
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 6px 0;
+  }
+  nav button .ico { font-size: 22px; line-height: 1; }
+  nav button.on { color: var(--primary); font-weight: 700; }
+
+  /* ───── 카드 공통 ───── */
+  .card {
+    background: var(--card); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 16px; margin-bottom: 14px;
+  }
+
+  /* ───── 번역기 ───── */
+  .lang-bar {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    margin-bottom: 12px;
+  }
+  .lang-bar .lang {
+    background: var(--card); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 9px 22px; font-size: 15px; font-weight: 700;
+  }
+  .lang-bar #btnSwap {
+    background: var(--primary); color: #fff; border: none;
+    width: 40px; height: 40px; border-radius: 50%; font-size: 18px;
+    cursor: pointer; box-shadow: var(--shadow); transition: transform .3s;
+  }
+  .lang-bar #btnSwap:active { transform: rotate(180deg); }
+  textarea#srcText {
+    width: 100%; border: none; outline: none; resize: none;
+    font-family: inherit; font-size: 18px; line-height: 1.5; min-height: 90px;
+    background: transparent;
+  }
+  .tr-tools { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .tbtn {
+    border: none; border-radius: 10px; padding: 10px 14px;
+    font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .tbtn.primary { background: var(--primary); color: #fff; flex: 1; justify-content: center; }
+  .tbtn.ghost { background: var(--primary-light); color: var(--primary); }
+  .tbtn:active { opacity: .8; }
+  .tbtn.mic-on { background: #E74C3C; color: #fff; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(231,76,60,.5);} 50% { box-shadow: 0 0 0 8px rgba(231,76,60,0);} }
+
+  #resultCard { display: none; border-left: 4px solid var(--primary); }
+  #resultCard.show { display: block; }
+  #resultText { font-size: 24px; font-weight: 700; line-height: 1.5; word-break: break-all; }
+  #resultSub { font-size: 13px; color: var(--text-sub); margin-top: 6px; }
+  .loading { color: var(--text-sub); font-size: 15px; }
+  .loading::after { content: ''; animation: dots 1.2s steps(4) infinite; }
+  @keyframes dots { 0% { content: '';} 25% { content: '.';} 50% { content: '..';} 75% { content: '...';} }
+
+  .quick-title { font-size: 13px; font-weight: 700; color: var(--text-sub); margin: 18px 0 8px 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    background: var(--card); border: 1px solid var(--border); border-radius: 20px;
+    padding: 8px 14px; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .chip:active { background: var(--primary-light); }
+
+  /* ───── 회화집 ───── */
+  #searchBox {
+    width: 100%; border: 1.5px solid var(--border); border-radius: 12px;
+    padding: 12px 14px; font-family: inherit; font-size: 15px; outline: none;
+    background: var(--card); margin-bottom: 14px;
+  }
+  #searchBox:focus { border-color: var(--primary); }
+  .cat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .cat-card {
+    background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 16px 8px; text-align: center; cursor: pointer; border: 2px solid transparent;
+  }
+  .cat-card.on { border-color: var(--primary); background: var(--primary-light); }
+  .cat-card .ico { font-size: 28px; }
+  .cat-card .nm { font-size: 12.5px; font-weight: 700; margin-top: 6px; }
+  .cat-card .cnt { font-size: 10.5px; color: var(--text-sub); margin-top: 2px; }
+
+  .phrase-list { margin-top: 16px; }
+  .phrase {
+    background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 14px 16px; margin-bottom: 10px; cursor: pointer; position: relative;
+  }
+  .phrase .ko { font-size: 15px; font-weight: 700; }
+  .phrase .ja { font-size: 18px; color: var(--primary); font-weight: 700; margin-top: 4px; }
+  .phrase .pr { font-size: 12.5px; color: var(--text-sub); margin-top: 3px; }
+  .phrase .fav {
+    position: absolute; top: 10px; right: 12px; font-size: 20px;
+    background: none; border: none; cursor: pointer; color: #D5D8DC;
+  }
+  .phrase .fav.on { color: #F1C40F; }
+  .phrase-acts { display: flex; gap: 8px; margin-top: 10px; }
+  .empty { text-align: center; color: var(--text-sub); padding: 40px 0; font-size: 14px; }
+
+  /* ───── 전체화면 크게보기 ───── */
+  #bigView {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    background: #fff; flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px; text-align: center;
+  }
+  #bigView.show { display: flex; }
+  #bigViewText { font-size: 11vw; font-weight: 800; line-height: 1.4; word-break: break-all; color: #000; }
+  #bigViewHint { font-size: 14px; color: var(--text-sub); margin-top: 24px; }
+  #bigViewClose {
+    position: absolute; top: 16px; right: 16px;
+    background: var(--bg); border: none; width: 44px; height: 44px;
+    border-radius: 50%; font-size: 20px; cursor: pointer;
+  }
+
+  /* ───── 여행팁 ───── */
+  .tip-sec h3 { font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .tip-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .tip-table td { padding: 8px 6px; border-bottom: 1px solid var(--border); }
+  .tip-table td:first-child { font-weight: 700; white-space: nowrap; }
+  .tip-table td:last-child { color: var(--primary); font-weight: 700; text-align: right; }
+  .num-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; font-size: 13.5px; }
+  .num-grid div { background: var(--bg); border-radius: 8px; padding: 8px 10px; }
+  .num-grid b { color: var(--primary); }
+  .tip-note { font-size: 13px; line-height: 1.7; color: var(--text); }
+  .tip-note li { margin-left: 18px; margin-bottom: 6px; }
+
+  /* 토스트 */
+  #toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: rgba(44,62,80,.92); color: #fff; padding: 10px 20px;
+    border-radius: 20px; font-size: 13px; z-index: 200; opacity: 0;
+    transition: opacity .3s; pointer-events: none; white-space: nowrap;
+  }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🇯🇵 일본여행 번역기</h1>
+  <p>여행에 필요한 일본어, 바로 말하고 보여주세요</p>
+</header>
+
+<main>
+  <!-- ══════════ 번역기 ══════════ -->
+  <section id="page-translate" class="page active">
+    <div class="lang-bar">
+      <div class="lang" id="langFrom">🇰🇷 한국어</div>
+      <button id="btnSwap" title="언어 전환">⇄</button>
+      <div class="lang" id="langTo">🇯🇵 일본어</div>
+    </div>
+
+    <div class="card">
+      <textarea id="srcText" placeholder="번역할 문장을 입력하세요&#10;예) 이 근처에 맛있는 라멘집 있나요?" rows="3"></textarea>
+      <div class="tr-tools">
+        <button class="tbtn ghost" id="btnMic">🎤 음성입력</button>
+        <button class="tbtn ghost" id="btnClear">✕ 지우기</button>
+        <button class="tbtn primary" id="btnTranslate">번역하기</button>
+      </div>
+    </div>
+
+    <div class="card" id="resultCard">
+      <div id="resultText"></div>
+      <div id="resultSub"></div>
+      <div class="tr-tools" style="margin-top:12px">
+        <button class="tbtn ghost" id="btnSpeak">🔊 발음듣기</button>
+        <button class="tbtn ghost" id="btnCopy">📋 복사</button>
+        <button class="tbtn ghost" id="btnBig">🔍 크게보기</button>
+      </div>
+    </div>
+
+    <div class="quick-title">⚡ 빠른 번역</div>
+    <div class="chips" id="quickChips"></div>
+  </section>
+
+  <!-- ══════════ 회화집 ══════════ -->
+  <section id="page-phrase" class="page">
+    <input id="searchBox" type="search" placeholder="🔍 회화 검색 (예: 화장실, 얼마, 예약)">
+    <div class="cat-grid" id="catGrid"></div>
+    <div class="phrase-list" id="phraseList"></div>
+  </section>
+
+  <!-- ══════════ 즐겨찾기 ══════════ -->
+  <section id="page-fav" class="page">
+    <div class="quick-title" style="margin-top:0">⭐ 저장한 문장</div>
+    <div class="phrase-list" id="favList"></div>
+  </section>
+
+  <!-- ══════════ 여행팁 ══════════ -->
+  <section id="page-tips" class="page">
+    <div class="card tip-sec">
+      <h3>🚨 긴급 연락처</h3>
+      <table class="tip-table">
+        <tr><td>경찰</td><td>110</td></tr>
+        <tr><td>화재·구급차</td><td>119</td></tr>
+        <tr><td>주일 한국대사관 (도쿄)</td><td>+81-3-3452-7611</td></tr>
+        <tr><td>영사콜센터 (24시간)</td><td>+82-2-3210-0404</td></tr>
+        <tr><td>일본 관광안내 (JNTO, 24시간)</td><td>050-3816-2787</td></tr>
+      </table>
+    </div>
+
+    <div class="card tip-sec">
+      <h3>🔢 숫자 읽기</h3>
+      <div class="num-grid">
+        <div>1 <b>いち</b> (이치)</div>
+        <div>2 <b>に</b> (니)</div>
+        <div>3 <b>さん</b> (산)</div>
+        <div>4 <b>よん</b> (욘)</div>
+        <div>5 <b>ご</b> (고)</div>
+        <div>6 <b>ろく</b> (로쿠)</div>
+        <div>7 <b>なな</b> (나나)</div>
+        <div>8 <b>はち</b> (하치)</div>
+        <div>9 <b>きゅう</b> (큐-)</div>
+        <div>10 <b>じゅう</b> (쥬-)</div>
+        <div>100 <b>ひゃく</b> (햐쿠)</div>
+        <div>1,000 <b>せん</b> (센)</div>
+        <div>10,000 <b>まん</b> (만)</div>
+        <div>엔 <b>えん</b> (엔)</div>
+      </div>
+    </div>
+
+    <div class="card tip-sec">
+      <h3>💡 여행 꿀팁</h3>
+      <div class="tip-note">
+        <li>식당·편의점에서 점원을 부를 때는 <b>「すみません」(스미마셍)</b> 한 마디면 충분해요.</li>
+        <li>일본은 <b>현금 사용 비중</b>이 아직 높아요. 동전지갑을 준비하면 편리합니다.</li>
+        <li>전철에서는 <b>통화를 자제</b>하는 것이 매너예요.</li>
+        <li>에스컬레이터는 도쿄는 <b>왼쪽</b>, 오사카는 <b>오른쪽</b>에 서요.</li>
+        <li>팁 문화가 없어요. 팁을 주면 오히려 당황할 수 있어요.</li>
+        <li>택시 뒷문은 <b>자동문</b>! 직접 여닫지 마세요.</li>
+        <li>쓰레기통이 거리에 거의 없어요. 봉지를 챙기면 유용해요.</li>
+        <li>온천·목욕탕은 <b>몸을 먼저 씻고</b> 입수하는 것이 기본 매너예요.</li>
+      </div>
+    </div>
+
+    <div class="card tip-sec">
+      <h3>🗣 마법의 한 마디</h3>
+      <table class="tip-table">
+        <tr><td>감사합니다</td><td>ありがとうございます</td></tr>
+        <tr><td>실례합니다/저기요</td><td>すみません</td></tr>
+        <tr><td>괜찮아요</td><td>大丈夫です</td></tr>
+        <tr><td>부탁합니다</td><td>お願いします</td></tr>
+        <tr><td>맛있어요!</td><td>おいしいです！</td></tr>
+      </table>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button data-page="translate" class="on"><span class="ico">🌐</span>번역기</button>
+  <button data-page="phrase"><span class="ico">💬</span>회화집</button>
+  <button data-page="fav"><span class="ico">⭐</span>즐겨찾기</button>
+  <button data-page="tips"><span class="ico">🎒</span>여행팁</button>
+</nav>
+
+<div id="bigView">
+  <button id="bigViewClose">✕</button>
+  <div id="bigViewText"></div>
+  <div id="bigViewHint">📱 이 화면을 상대방에게 보여주세요</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ═══════════════ 회화 데이터 ═══════════════ */
+const CATEGORIES = [
+  { id: 'basic',    ico: '🙋', name: '기본표현' },
+  { id: 'airport',  ico: '✈️', name: '공항·입국' },
+  { id: 'transport',ico: '🚃', name: '교통' },
+  { id: 'hotel',    ico: '🏨', name: '호텔' },
+  { id: 'food',     ico: '🍜', name: '식당' },
+  { id: 'shopping', ico: '🛍️', name: '쇼핑' },
+  { id: 'sights',   ico: '⛩️', name: '관광' },
+  { id: 'emergency',ico: '🚨', name: '긴급상황' },
+  { id: 'conveni',  ico: '🏪', name: '편의점' },
+];
+
+const PHRASES = [
+  /* 기본표현 */
+  { c:'basic', ko:'안녕하세요', ja:'こんにちは', pr:'곤니치와' },
+  { c:'basic', ko:'감사합니다', ja:'ありがとうございます', pr:'아리가토- 고자이마스' },
+  { c:'basic', ko:'죄송합니다', ja:'すみません', pr:'스미마셍' },
+  { c:'basic', ko:'네 / 아니요', ja:'はい / いいえ', pr:'하이 / 이-에' },
+  { c:'basic', ko:'괜찮아요', ja:'大丈夫です', pr:'다이죠-부데스' },
+  { c:'basic', ko:'부탁합니다', ja:'お願いします', pr:'오네가이시마스' },
+  { c:'basic', ko:'일본어를 못해요', ja:'日本語ができません', pr:'니홍고가 데키마셍' },
+  { c:'basic', ko:'한국어 할 수 있는 분 계세요?', ja:'韓国語ができる方はいますか？', pr:'캉코쿠고가 데키루 카타와 이마스카?' },
+  { c:'basic', ko:'천천히 말해 주세요', ja:'ゆっくり話してください', pr:'윳쿠리 하나시테 쿠다사이' },
+  { c:'basic', ko:'다시 한번 말해 주세요', ja:'もう一度言ってください', pr:'모- 이치도 잇테 쿠다사이' },
+  { c:'basic', ko:'이거 뭐예요?', ja:'これは何ですか？', pr:'코레와 난데스카?' },
+  { c:'basic', ko:'화장실이 어디예요?', ja:'トイレはどこですか？', pr:'토이레와 도코데스카?' },
+  { c:'basic', ko:'사진 찍어 주시겠어요?', ja:'写真を撮ってもらえますか？', pr:'샤신오 톳테 모라에마스카?' },
+  { c:'basic', ko:'여기에 써 주세요', ja:'ここに書いてください', pr:'코코니 카이테 쿠다사이' },
+
+  /* 공항·입국 */
+  { c:'airport', ko:'관광으로 왔어요', ja:'観光で来ました', pr:'캉코-데 키마시타' },
+  { c:'airport', ko:'3일 머물 거예요', ja:'3日間滞在します', pr:'밋카캉 타이자이시마스' },
+  { c:'airport', ko:'호텔에 묵어요', ja:'ホテルに泊まります', pr:'호테루니 토마리마스' },
+  { c:'airport', ko:'제 짐이 안 나왔어요', ja:'荷物が出てきません', pr:'니모츠가 데테키마셍' },
+  { c:'airport', ko:'환전은 어디서 하나요?', ja:'両替はどこでできますか？', pr:'료-가에와 도코데 데키마스카?' },
+  { c:'airport', ko:'포켓와이파이는 어디서 받나요?', ja:'ポケットWi-Fiはどこで受け取れますか？', pr:'포켓토 와이화이와 도코데 우케토레마스카?' },
+  { c:'airport', ko:'시내로 가는 버스는 어디예요?', ja:'市内へ行くバスはどこですか？', pr:'시나이에 이쿠 바스와 도코데스카?' },
+  { c:'airport', ko:'탑승구가 어디예요?', ja:'搭乗口はどこですか？', pr:'토-죠-구치와 도코데스카?' },
+
+  /* 교통 */
+  { c:'transport', ko:'이 전철은 신주쿠에 가나요?', ja:'この電車は新宿に行きますか？', pr:'코노 덴샤와 신주쿠니 이키마스카?' },
+  { c:'transport', ko:'표는 어디서 사나요?', ja:'切符はどこで買えますか？', pr:'킷푸와 도코데 카에마스카?' },
+  { c:'transport', ko:'여기까지 가 주세요 (주소를 보여주며)', ja:'ここまでお願いします', pr:'코코마데 오네가이시마스' },
+  { c:'transport', ko:'얼마나 걸려요?', ja:'どのくらいかかりますか？', pr:'도노쿠라이 카카리마스카?' },
+  { c:'transport', ko:'어느 역에서 갈아타나요?', ja:'どの駅で乗り換えますか？', pr:'도노 에키데 노리카에마스카?' },
+  { c:'transport', ko:'막차는 몇 시예요?', ja:'終電は何時ですか？', pr:'슈-덴와 난지데스카?' },
+  { c:'transport', ko:'이 자리 비어 있나요?', ja:'この席は空いていますか？', pr:'코노 세키와 아이테 이마스카?' },
+  { c:'transport', ko:'내릴게요!', ja:'降ります！', pr:'오리마스!' },
+  { c:'transport', ko:'스이카 카드 충전해 주세요', ja:'Suicaをチャージしてください', pr:'스이카오 챠-지시테 쿠다사이' },
+
+  /* 호텔 */
+  { c:'hotel', ko:'체크인 부탁합니다', ja:'チェックインをお願いします', pr:'첵쿠인오 오네가이시마스' },
+  { c:'hotel', ko:'예약했어요. 이름은 ○○입니다', ja:'予約しています。名前は○○です', pr:'요야쿠시테 이마스. 나마에와 ○○데스' },
+  { c:'hotel', ko:'체크아웃은 몇 시예요?', ja:'チェックアウトは何時ですか？', pr:'첵쿠아우토와 난지데스카?' },
+  { c:'hotel', ko:'짐을 맡길 수 있나요?', ja:'荷物を預かってもらえますか？', pr:'니모츠오 아즈캇테 모라에마스카?' },
+  { c:'hotel', ko:'와이파이 비밀번호를 알려 주세요', ja:'Wi-Fiのパスワードを教えてください', pr:'와이화이노 파스와-도오 오시에테 쿠다사이' },
+  { c:'hotel', ko:'수건을 더 주세요', ja:'タオルをもう一枚ください', pr:'타오루오 모- 이치마이 쿠다사이' },
+  { c:'hotel', ko:'방에 열쇠를 두고 나왔어요', ja:'部屋に鍵を忘れました', pr:'헤야니 카기오 와스레마시타' },
+  { c:'hotel', ko:'조식은 몇 시부터예요?', ja:'朝食は何時からですか？', pr:'쵸-쇼쿠와 난지카라데스카?' },
+  { c:'hotel', ko:'택시를 불러 주세요', ja:'タクシーを呼んでください', pr:'타쿠시-오 욘데 쿠다사이' },
+
+  /* 식당 */
+  { c:'food', ko:'두 명이에요', ja:'二人です', pr:'후타리데스' },
+  { c:'food', ko:'메뉴판 주세요', ja:'メニューをください', pr:'메뉴-오 쿠다사이' },
+  { c:'food', ko:'추천 메뉴가 뭐예요?', ja:'おすすめは何ですか？', pr:'오스스메와 난데스카?' },
+  { c:'food', ko:'이걸로 주세요 (가리키며)', ja:'これをください', pr:'코레오 쿠다사이' },
+  { c:'food', ko:'덜 맵게 해 주세요', ja:'辛さ控えめでお願いします', pr:'카라사 히카에메데 오네가이시마스' },
+  { c:'food', ko:'저는 ○○ 알레르기가 있어요', ja:'○○アレルギーがあります', pr:'○○ 아레루기-가 아리마스' },
+  { c:'food', ko:'물 주세요', ja:'お水をください', pr:'오미즈오 쿠다사이' },
+  { c:'food', ko:'맛있어요!', ja:'おいしいです！', pr:'오이시-데스!' },
+  { c:'food', ko:'계산해 주세요', ja:'お会計お願いします', pr:'오카이케- 오네가이시마스' },
+  { c:'food', ko:'따로따로 계산할 수 있나요?', ja:'別々に会計できますか？', pr:'베츠베츠니 카이케- 데키마스카?' },
+  { c:'food', ko:'카드로 계산할 수 있나요?', ja:'カードで払えますか？', pr:'카-도데 하라에마스카?' },
+  { c:'food', ko:'포장 되나요?', ja:'持ち帰りできますか？', pr:'모치카에리 데키마스카?' },
+
+  /* 쇼핑 */
+  { c:'shopping', ko:'얼마예요?', ja:'いくらですか？', pr:'이쿠라데스카?' },
+  { c:'shopping', ko:'이거 입어봐도 되나요?', ja:'これを試着してもいいですか？', pr:'코레오 시챠쿠시테모 이-데스카?' },
+  { c:'shopping', ko:'더 큰/작은 사이즈 있나요?', ja:'もっと大きい／小さいサイズはありますか？', pr:'못토 오-키-/치-사이 사이즈와 아리마스카?' },
+  { c:'shopping', ko:'다른 색 있나요?', ja:'他の色はありますか？', pr:'호카노 이로와 아리마스카?' },
+  { c:'shopping', ko:'면세 되나요?', ja:'免税できますか？', pr:'멘제- 데키마스카?' },
+  { c:'shopping', ko:'선물용으로 포장해 주세요', ja:'プレゼント用に包んでください', pr:'프레젠토요-니 츠츤데 쿠다사이' },
+  { c:'shopping', ko:'그냥 구경하고 있어요', ja:'見ているだけです', pr:'미테이루 다케데스' },
+  { c:'shopping', ko:'이거 세일 중인가요?', ja:'これはセール中ですか？', pr:'코레와 세-루츄-데스카?' },
+  { c:'shopping', ko:'봉투 하나 주세요', ja:'袋を一つください', pr:'후쿠로오 히토츠 쿠다사이' },
+
+  /* 관광 */
+  { c:'sights', ko:'입장료는 얼마예요?', ja:'入場料はいくらですか？', pr:'뉴-죠-료-와 이쿠라데스카?' },
+  { c:'sights', ko:'몇 시까지 하나요?', ja:'何時までですか？', pr:'난지마데데스카?' },
+  { c:'sights', ko:'여기서 사진 찍어도 되나요?', ja:'ここで写真を撮ってもいいですか？', pr:'코코데 샤신오 톳테모 이-데스카?' },
+  { c:'sights', ko:'가장 가까운 역이 어디예요?', ja:'一番近い駅はどこですか？', pr:'이치반 치카이 에키와 도코데스카?' },
+  { c:'sights', ko:'걸어서 갈 수 있나요?', ja:'歩いて行けますか？', pr:'아루이테 이케마스카?' },
+  { c:'sights', ko:'지도를 그려 주시겠어요?', ja:'地図を描いてもらえますか？', pr:'치즈오 카이테 모라에마스카?' },
+  { c:'sights', ko:'한국어 팸플릿 있나요?', ja:'韓国語のパンフレットはありますか？', pr:'캉코쿠고노 판후렛토와 아리마스카?' },
+  { c:'sights', ko:'오늘 축제 있나요?', ja:'今日お祭りはありますか？', pr:'쿄- 오마츠리와 아리마스카?' },
+
+  /* 긴급상황 */
+  { c:'emergency', ko:'도와주세요!', ja:'助けてください！', pr:'타스케테 쿠다사이!' },
+  { c:'emergency', ko:'경찰을 불러 주세요', ja:'警察を呼んでください', pr:'케-사츠오 욘데 쿠다사이' },
+  { c:'emergency', ko:'구급차를 불러 주세요', ja:'救急車を呼んでください', pr:'큐-큐-샤오 욘데 쿠다사이' },
+  { c:'emergency', ko:'몸이 아파요', ja:'具合が悪いです', pr:'구아이가 와루이데스' },
+  { c:'emergency', ko:'여기가 아파요 (가리키며)', ja:'ここが痛いです', pr:'코코가 이타이데스' },
+  { c:'emergency', ko:'병원에 가고 싶어요', ja:'病院に行きたいです', pr:'뵤-인니 이키타이데스' },
+  { c:'emergency', ko:'약국이 어디예요?', ja:'薬局はどこですか？', pr:'약쿄쿠와 도코데스카?' },
+  { c:'emergency', ko:'지갑을 잃어버렸어요', ja:'財布をなくしました', pr:'사이후오 나쿠시마시타' },
+  { c:'emergency', ko:'여권을 잃어버렸어요', ja:'パスポートをなくしました', pr:'파스포-토오 나쿠시마시타' },
+  { c:'emergency', ko:'길을 잃었어요', ja:'道に迷いました', pr:'미치니 마요이마시타' },
+  { c:'emergency', ko:'한국대사관에 연락하고 싶어요', ja:'韓国大使館に連絡したいです', pr:'캉코쿠 타이시칸니 렌라쿠시타이데스' },
+
+  /* 편의점 */
+  { c:'conveni', ko:'이거 데워 주세요', ja:'これを温めてください', pr:'코레오 아타타메테 쿠다사이' },
+  { c:'conveni', ko:'젓가락 주세요', ja:'お箸をください', pr:'오하시오 쿠다사이' },
+  { c:'conveni', ko:'봉투는 필요 없어요', ja:'袋はいりません', pr:'후쿠로와 이리마셍' },
+  { c:'conveni', ko:'ATM 있나요?', ja:'ATMはありますか？', pr:'에-티-에무와 아리마스카?' },
+  { c:'conveni', ko:'교통카드로 계산할게요', ja:'交通系ICカードで払います', pr:'코-츠-케- 아이시-카-도데 하라이마스' },
+  { c:'conveni', ko:'포인트 카드 없어요', ja:'ポイントカードはありません', pr:'포인토카-도와 아리마셍' },
+  { c:'conveni', ko:'화장실을 써도 되나요?', ja:'トイレを借りてもいいですか？', pr:'토이레오 카리테모 이-데스카?' },
+];
+
+const QUICK = [
+  '화장실이 어디예요?', '얼마예요?', '이거 주세요', '추천 메뉴가 뭐예요?',
+  '역까지 어떻게 가요?', '사진 찍어 주세요', '카드 되나요?', '면세 되나요?'
+];
+
+/* ═══════════════ 상태 ═══════════════ */
+let srcLang = 'ko', dstLang = 'ja';
+let currentCat = 'basic';
+let favs = JSON.parse(localStorage.getItem('jt_favs') || '[]');
+
+const $ = id => document.getElementById(id);
+
+/* ═══════════════ 탭 전환 ═══════════════ */
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('on'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('on');
+    $('page-' + btn.dataset.page).classList.add('active');
+    if (btn.dataset.page === 'fav') renderFavs();
+    window.scrollTo(0, 0);
+  });
+});
+
+/* ═══════════════ 번역기 ═══════════════ */
+$('btnSwap').addEventListener('click', () => {
+  [srcLang, dstLang] = [dstLang, srcLang];
+  $('langFrom').textContent = srcLang === 'ko' ? '🇰🇷 한국어' : '🇯🇵 일본어';
+  $('langTo').textContent   = dstLang === 'ko' ? '🇰🇷 한국어' : '🇯🇵 일본어';
+  $('srcText').placeholder = srcLang === 'ko'
+    ? '번역할 문장을 입력하세요\n예) 이 근처에 맛있는 라멘집 있나요?'
+    : '翻訳する文章を入力してください';
+});
+
+$('btnClear').addEventListener('click', () => {
+  $('srcText').value = '';
+  $('resultCard').classList.remove('show');
+  $('srcText').focus();
+});
+
+let lastResult = '';
+
+async function translate(text) {
+  if (!text.trim()) { toast('문장을 입력해 주세요'); return; }
+  $('resultCard').classList.add('show');
+  $('resultText').innerHTML = '<span class="loading">번역 중</span>';
+  $('resultSub').textContent = '';
+  try {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${srcLang}|${dstLang}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    let out = data?.responseData?.translatedText || '';
+    // 매칭 품질이 더 좋은 결과가 있으면 사용
+    if (Array.isArray(data?.matches)) {
+      const best = data.matches.filter(m => m.translation && Number(m.match) >= 0.9)
+                               .sort((a, b) => Number(b.match) - Number(a.match))[0];
+      if (best) out = best.translation;
+    }
+    if (!out || /MYMEMORY WARNING/i.test(out)) throw new Error('empty');
+    lastResult = out;
+    $('resultText').textContent = out;
+    $('resultSub').textContent = (dstLang === 'ja' ? '🇯🇵 ' : '🇰🇷 ') + '「' + text.trim() + '」의 번역 결과';
+  } catch (e) {
+    $('resultText').innerHTML = '<span style="font-size:15px;color:var(--text-sub)">⚠️ 번역에 실패했어요. 네트워크를 확인하거나 회화집 탭의 준비된 문장을 이용해 주세요.</span>';
+    lastResult = '';
+  }
+}
+
+$('btnTranslate').addEventListener('click', () => translate($('srcText').value));
+$('srcText').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); translate($('srcText').value); }
+});
+
+$('btnSpeak').addEventListener('click', () => lastResult && speak(lastResult, dstLang));
+$('btnCopy').addEventListener('click', async () => {
+  if (!lastResult) return;
+  try { await navigator.clipboard.writeText(lastResult); toast('복사되었어요 📋'); }
+  catch { toast('복사에 실패했어요'); }
+});
+$('btnBig').addEventListener('click', () => lastResult && showBig(lastResult));
+
+/* 빠른 번역 칩 */
+QUICK.forEach(q => {
+  const b = document.createElement('button');
+  b.className = 'chip'; b.textContent = q;
+  b.addEventListener('click', () => {
+    if (srcLang !== 'ko') $('btnSwap').click();
+    $('srcText').value = q;
+    translate(q);
+  });
+  $('quickChips').appendChild(b);
+});
+
+/* ═══════════════ 음성 입력 ═══════════════ */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recog = null, listening = false;
+if (SR) {
+  recog = new SR();
+  recog.interimResults = false;
+  recog.maxAlternatives = 1;
+  recog.onresult = e => {
+    const t = e.results[0][0].transcript;
+    $('srcText').value = t;
+    translate(t);
+  };
+  recog.onend = () => { listening = false; $('btnMic').classList.remove('mic-on'); $('btnMic').textContent = '🎤 음성입력'; };
+  recog.onerror = () => toast('음성 인식에 실패했어요');
+}
+$('btnMic').addEventListener('click', () => {
+  if (!recog) { toast('이 브라우저는 음성 인식을 지원하지 않아요'); return; }
+  if (listening) { recog.stop(); return; }
+  recog.lang = srcLang === 'ko' ? 'ko-KR' : 'ja-JP';
+  recog.start();
+  listening = true;
+  $('btnMic').classList.add('mic-on');
+  $('btnMic').textContent = '🔴 듣는 중...';
+});
+
+/* ═══════════════ 음성 재생 (TTS) ═══════════════ */
+function speak(text, lang) {
+  if (!('speechSynthesis' in window)) { toast('음성 재생을 지원하지 않는 브라우저예요'); return; }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text.replace(/○○/g, ''));
+  u.lang = lang === 'ja' ? 'ja-JP' : 'ko-KR';
+  u.rate = 0.85;
+  const voices = speechSynthesis.getVoices();
+  const v = voices.find(v => v.lang.startsWith(u.lang));
+  if (v) u.voice = v;
+  speechSynthesis.speak(u);
+}
+if ('speechSynthesis' in window) speechSynthesis.getVoices();
+
+/* ═══════════════ 회화집 ═══════════════ */
+function renderCats() {
+  $('catGrid').innerHTML = '';
+  CATEGORIES.forEach(cat => {
+    const cnt = PHRASES.filter(p => p.c === cat.id).length;
+    const d = document.createElement('div');
+    d.className = 'cat-card' + (cat.id === currentCat ? ' on' : '');
+    d.innerHTML = `<div class="ico">${cat.ico}</div><div class="nm">${cat.name}</div><div class="cnt">${cnt}개 문장</div>`;
+    d.addEventListener('click', () => {
+      currentCat = cat.id;
+      $('searchBox').value = '';
+      renderCats(); renderPhrases();
+    });
+    $('catGrid').appendChild(d);
+  });
+}
+
+function phraseKey(p) { return p.ko + '|' + p.ja; }
+
+function phraseEl(p, fromFav) {
+  const key = phraseKey(p);
+  const isFav = favs.includes(key);
+  const d = document.createElement('div');
+  d.className = 'phrase';
+  d.innerHTML = `
+    <button class="fav ${isFav ? 'on' : ''}">${isFav ? '★' : '☆'}</button>
+    <div class="ko">${p.ko}</div>
+    <div class="ja">${p.ja}</div>
+    <div class="pr">🗣 ${p.pr}</div>
+    <div class="phrase-acts">
+      <button class="tbtn ghost btn-sp">🔊 발음듣기</button>
+      <button class="tbtn ghost btn-bg">🔍 크게보기</button>
+    </div>`;
+  d.querySelector('.fav').addEventListener('click', e => {
+    e.stopPropagation();
+    if (favs.includes(key)) favs = favs.filter(k => k !== key);
+    else favs.push(key);
+    localStorage.setItem('jt_favs', JSON.stringify(favs));
+    if (fromFav) renderFavs(); else renderPhrases();
+    toast(favs.includes(key) ? '즐겨찾기에 저장했어요 ⭐' : '즐겨찾기에서 삭제했어요');
+  });
+  d.querySelector('.btn-sp').addEventListener('click', e => { e.stopPropagation(); speak(p.ja, 'ja'); });
+  d.querySelector('.btn-bg').addEventListener('click', e => { e.stopPropagation(); showBig(p.ja); });
+  return d;
+}
+
+function renderPhrases() {
+  const q = $('searchBox').value.trim().toLowerCase();
+  const list = $('phraseList');
+  list.innerHTML = '';
+  let items;
+  if (q) {
+    items = PHRASES.filter(p => p.ko.toLowerCase().includes(q) || p.ja.includes(q) || p.pr.includes(q));
+    document.querySelectorAll('.cat-card').forEach(c => c.classList.remove('on'));
+  } else {
+    items = PHRASES.filter(p => p.c === currentCat);
+  }
+  if (!items.length) { list.innerHTML = '<div class="empty">검색 결과가 없어요 🔍</div>'; return; }
+  items.forEach(p => list.appendChild(phraseEl(p, false)));
+}
+
+$('searchBox').addEventListener('input', () => {
+  if (!$('searchBox').value.trim()) renderCats();
+  renderPhrases();
+});
+
+/* ═══════════════ 즐겨찾기 ═══════════════ */
+function renderFavs() {
+  const list = $('favList');
+  list.innerHTML = '';
+  const items = PHRASES.filter(p => favs.includes(phraseKey(p)));
+  if (!items.length) {
+    list.innerHTML = '<div class="empty">아직 저장한 문장이 없어요.<br>회화집에서 ☆ 를 눌러 저장해 보세요!</div>';
+    return;
+  }
+  items.forEach(p => list.appendChild(phraseEl(p, true)));
+}
+
+/* ═══════════════ 크게보기 ═══════════════ */
+function showBig(text) {
+  $('bigViewText').textContent = text;
+  const len = text.length;
+  $('bigViewText').style.fontSize = len > 30 ? '8vw' : len > 15 ? '10vw' : '13vw';
+  $('bigView').classList.add('show');
+}
+$('bigViewClose').addEventListener('click', () => $('bigView').classList.remove('show'));
+$('bigView').addEventListener('click', e => { if (e.target === $('bigView')) $('bigView').classList.remove('show'); });
+
+/* ═══════════════ 토스트 ═══════════════ */
+let toastTimer;
+function toast(msg) {
+  $('toast').textContent = msg;
+  $('toast').classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $('toast').classList.remove('show'), 1800);
+}
+
+/* 초기 렌더 */
+renderCats();
+renderPhrases();
+
+/* ═══════════════ PWA 서비스워커 등록 ═══════════════ */
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js', { scope: './' })
+      .catch(() => {/* 등록 실패해도 앱은 정상 동작 */});
+  });
+}
+</script>
+</body>
+</html>

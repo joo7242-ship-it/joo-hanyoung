@@ -8,7 +8,7 @@
   - 상대경로 우선 탐색: ./docs → 환경변수 → 기본 경로 순
 """
 
-from flask import Flask, jsonify, render_template_string, request, send_file, Response
+from flask import Flask, jsonify, redirect, render_template_string, request, send_file, send_from_directory, Response
 from docx import Document
 import openpyxl
 import os, json, html, re, io, zipfile, urllib.parse
@@ -971,6 +971,26 @@ init();
 @app.route('/')
 def index():
     return render_template_string(HTML_TEMPLATE)
+
+
+JAPAN_TRAVEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'japan-travel')
+
+@app.route('/japan-travel')
+def japan_travel_redirect():
+    # 상대경로 자산이 올바르게 해석되도록 트레일링 슬래시로 통일
+    return redirect('/japan-travel/', code=301)
+
+@app.route('/japan-travel/')
+@app.route('/japan-travel/<path:filename>')
+def japan_travel(filename='index.html'):
+    """일본여행 번역 앱 (PWA 정적 파일 서빙)"""
+    mimetype = None
+    if filename.endswith('.webmanifest'):
+        mimetype = 'application/manifest+json'
+    try:
+        return send_from_directory(JAPAN_TRAVEL_DIR, filename, mimetype=mimetype)
+    except Exception:
+        return jsonify({'error': 'not found'}), 404
 
 
 if __name__ == '__main__':

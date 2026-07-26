@@ -1,0 +1,27 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.joocnj.com" }],
+      "destination": "https://joocnj.com/:path*",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "japan.joocnj.com" }],
+      "destination": "/japan-travel/:path*"
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "(?<app>(?!www\\.|api\\.|admin\\.|mail\\.|static\\.|assets\\.|dashboard\\.)[a-z0-9-]+)\\.joocnj\\.com"
+        }
+      ],
+      "destination": "/:app/:path*"
+    }
+  ]
+}
