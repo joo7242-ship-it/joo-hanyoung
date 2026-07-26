@@ -973,6 +973,16 @@ def index():
     return render_template_string(HTML_TEMPLATE)
 
 
+@app.route('/japan-travel')
+@app.route('/japan-travel/')
+def japan_travel():
+    """일본여행 번역 앱 (정적 단일 파일)"""
+    fpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'japan-travel', 'index.html')
+    if not os.path.isfile(fpath):
+        return jsonify({'error': 'not found'}), 404
+    return send_file(fpath, mimetype='text/html')
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 3000))
     print(f'🚀 IMS 문서 미리보기 서버 v2.2 시작')
