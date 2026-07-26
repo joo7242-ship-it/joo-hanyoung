@@ -8,7 +8,7 @@
   - 상대경로 우선 탐색: ./docs → 환경변수 → 기본 경로 순
 """
 
-from flask import Flask, jsonify, render_template_string, request, send_file, Response
+from flask import Flask, jsonify, render_template_string, request, send_file, send_from_directory, Response
 from docx import Document
 import openpyxl
 import os, json, html, re, io, zipfile, urllib.parse
@@ -973,14 +973,20 @@ def index():
     return render_template_string(HTML_TEMPLATE)
 
 
+JAPAN_TRAVEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'japan-travel')
+
 @app.route('/japan-travel')
 @app.route('/japan-travel/')
-def japan_travel():
-    """일본여행 번역 앱 (정적 단일 파일)"""
-    fpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'japan-travel', 'index.html')
-    if not os.path.isfile(fpath):
+@app.route('/japan-travel/<path:filename>')
+def japan_travel(filename='index.html'):
+    """일본여행 번역 앱 (PWA 정적 파일 서빙)"""
+    mimetype = None
+    if filename.endswith('.webmanifest'):
+        mimetype = 'application/manifest+json'
+    try:
+        return send_from_directory(JAPAN_TRAVEL_DIR, filename, mimetype=mimetype)
+    except Exception:
         return jsonify({'error': 'not found'}), 404
-    return send_file(fpath, mimetype='text/html')
 
 
 if __name__ == '__main__':

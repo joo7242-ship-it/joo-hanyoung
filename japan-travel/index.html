@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#C0392B">
+<link rel="manifest" href="/japan-travel/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/japan-travel/icon-192.png">
+<link rel="apple-touch-icon" href="/japan-travel/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="일본번역">
 <title>🇯🇵 일본여행 번역기</title>
 <style>
   :root {
@@ -674,6 +681,14 @@ function toast(msg) {
 /* 초기 렌더 */
 renderCats();
 renderPhrases();
+
+/* ═══════════════ PWA 서비스워커 등록 ═══════════════ */
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/japan-travel/sw.js', { scope: '/japan-travel/' })
+      .catch(() => {/* 등록 실패해도 앱은 정상 동작 */});
+  });
+}
 </script>
 </body>
 </html>
