@@ -15,6 +15,11 @@
     },
     {
       "source": "/:path*",
+      "has": [{ "type": "host", "value": "jangan.joocnj.com" }],
+      "destination": "/japan-travel/:path*"
+    },
+    {
+      "source": "/:path*",
       "has": [
         {
           "type": "host",

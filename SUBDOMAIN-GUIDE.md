@@ -19,7 +19,8 @@
 
 - **일반 규칙**: `{이름}.joocnj.com` 요청은 저장소의 `/{이름}/` 폴더로 자동 매핑된다.
   (`vercel.json`의 정규식 rewrite — 코드 수정 없이 폴더만 추가하면 서브도메인이 살아난다)
-- **예외 매핑**: 폴더명과 서브도메인이 다르면 개별 규칙을 추가한다. (예: `japan` → `japan-travel`)
+- **예외 매핑**: 폴더명과 서브도메인이 다르면 개별 규칙을 추가한다.
+  (예: `japan` → `japan-travel`, `jangan` → `japan-travel` — jangan은 기존 Cloudflare 레코드를 그대로 활용하는 별칭)
 - **예약 서브도메인** (테넌트/앱 발급 금지): `www, api, admin, mail, static, assets, dashboard`
 
 ## 2. 최초 1회 설정 (Cloudflare + Vercel)
