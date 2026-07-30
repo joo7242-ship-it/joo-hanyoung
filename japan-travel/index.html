@@ -191,6 +191,44 @@
   .tip-note { font-size: 13px; line-height: 1.7; color: var(--text); }
   .tip-note li { margin-left: 18px; margin-bottom: 6px; }
 
+  /* ───── 도쿄 가이드 ───── */
+  .seg {
+    display: flex; gap: 6px; background: var(--card); border-radius: 12px;
+    padding: 5px; box-shadow: var(--shadow); margin-bottom: 14px;
+  }
+  .seg button {
+    flex: 1; border: none; background: none; font-family: inherit;
+    font-size: 13.5px; font-weight: 700; color: var(--text-sub);
+    padding: 9px 4px; border-radius: 9px; cursor: pointer;
+  }
+  .seg button.on { background: var(--primary); color: #fff; }
+  .spot {
+    background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 15px 16px; margin-bottom: 12px;
+  }
+  .spot .top { display: flex; align-items: center; gap: 10px; }
+  .spot .emj { font-size: 26px; }
+  .spot .nm { font-size: 15.5px; font-weight: 800; flex: 1; }
+  .spot .jp { font-size: 13.5px; color: var(--primary); font-weight: 700; margin-top: 2px; }
+  .spot .st {
+    font-size: 11px; background: var(--primary-light); color: var(--primary);
+    border-radius: 6px; padding: 3px 8px; font-weight: 700; white-space: nowrap;
+  }
+  .spot .desc { font-size: 13px; line-height: 1.65; margin-top: 9px; color: var(--text); }
+  .spot .tip { font-size: 12px; line-height: 1.6; margin-top: 7px; color: var(--text-sub); background: var(--bg); border-radius: 8px; padding: 8px 10px; }
+  .spot .acts { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .spot .order { font-size: 12.5px; margin-top: 8px; color: var(--accent); }
+  .spot .order b { color: var(--primary); }
+  .spot .pr-inline { font-size: 12px; color: var(--text-sub); font-weight: 600; }
+  .spot .route { font-size: 12.5px; line-height: 1.6; margin-top: 8px; color: var(--accent); background: #EFF6FB; border-radius: 8px; padding: 8px 10px; }
+  .spot.course { border-left: 4px solid var(--primary); }
+  .spot.course .step { background: var(--primary-light); color: var(--primary); font-weight: 700; border-radius: 6px; padding: 2px 7px; font-size: 12.5px; display: inline-block; margin: 2px 0; }
+  .spot.course .arrow { color: var(--text-sub); }
+  .tr-row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .tr-row:last-child { border-bottom: none; }
+  .tr-row .k { font-weight: 700; white-space: nowrap; }
+  .tr-row .v { color: var(--primary); font-weight: 700; text-align: right; }
+
   /* ───── 앱 설치 배너 ───── */
   #installBar {
     display: none; position: fixed; left: 50%; transform: translateX(-50%);
@@ -300,6 +338,16 @@
     <div class="phrase-list" id="favList"></div>
   </section>
 
+  <!-- ══════════ 도쿄 가이드 ══════════ -->
+  <section id="page-tokyo" class="page">
+    <div class="seg" id="tokyoSeg">
+      <button data-seg="spots" class="on">⛩️ 관광지</button>
+      <button data-seg="food">🍜 맛집</button>
+      <button data-seg="transit">🚇 교통</button>
+    </div>
+    <div id="tokyoBody"></div>
+  </section>
+
   <!-- ══════════ 여행팁 ══════════ -->
   <section id="page-tips" class="page">
     <div class="card tip-sec">
@@ -363,6 +411,7 @@
 <nav>
   <button data-page="translate" class="on"><span class="ico">🌐</span>번역기</button>
   <button data-page="phrase"><span class="ico">💬</span>회화집</button>
+  <button data-page="tokyo"><span class="ico">🗼</span>도쿄가이드</button>
   <button data-page="fav"><span class="ico">⭐</span>즐겨찾기</button>
   <button data-page="tips"><span class="ico">🎒</span>여행팁</button>
 </nav>
@@ -559,6 +608,43 @@ $('btnClear').addEventListener('click', () => {
 
 let lastResult = '';
 
+/* ═══ 가나 → 한글 발음 변환 (번역 결과 발음 병기용) ═══ */
+const KANA2 = { 'キャ':'캬','キュ':'큐','キョ':'쿄','ギャ':'갸','ギュ':'규','ギョ':'교','シャ':'샤','シュ':'슈','ショ':'쇼','ジャ':'자','ジュ':'주','ジョ':'조','チャ':'차','チュ':'추','チョ':'초','ニャ':'냐','ニュ':'뉴','ニョ':'뇨','ヒャ':'햐','ヒュ':'휴','ヒョ':'효','ビャ':'뱌','ビュ':'뷰','ビョ':'뵤','ピャ':'퍄','ピュ':'퓨','ピョ':'표','ミャ':'먀','ミュ':'뮤','ミョ':'묘','リャ':'랴','リュ':'류','リョ':'료','ティ':'티','ディ':'디','ウィ':'위','ウェ':'웨','ファ':'화','フィ':'휘','フェ':'훼','フォ':'포' };
+const KANA1 = { 'ア':'아','イ':'이','ウ':'우','エ':'에','オ':'오','カ':'카','キ':'키','ク':'쿠','ケ':'케','コ':'코','ガ':'가','ギ':'기','グ':'구','ゲ':'게','ゴ':'고','サ':'사','シ':'시','ス':'스','セ':'세','ソ':'소','ザ':'자','ジ':'지','ズ':'즈','ゼ':'제','ゾ':'조','タ':'타','チ':'치','ツ':'츠','テ':'테','ト':'토','ダ':'다','ヂ':'지','ヅ':'즈','デ':'데','ド':'도','ナ':'나','ニ':'니','ヌ':'누','ネ':'네','ノ':'노','ハ':'하','ヒ':'히','フ':'후','ヘ':'헤','ホ':'호','バ':'바','ビ':'비','ブ':'부','ベ':'베','ボ':'보','パ':'파','ピ':'피','プ':'푸','ペ':'페','ポ':'포','マ':'마','ミ':'미','ム':'무','メ':'메','モ':'모','ヤ':'야','ユ':'유','ヨ':'요','ラ':'라','リ':'리','ル':'루','レ':'레','ロ':'로','ワ':'와','ヲ':'오','ヴ':'부' };
+
+function _addJong(s, jong) {
+  // 직전 한글 음절에 받침(ㄴ=4, ㅅ=19) 추가
+  if (!s) return s;
+  const code = s.charCodeAt(s.length - 1);
+  if (code >= 0xAC00 && code <= 0xD7A3 && (code - 0xAC00) % 28 === 0) {
+    return s.slice(0, -1) + String.fromCharCode(code + jong);
+  }
+  return s + (jong === 4 ? '응' : '');
+}
+
+function kanaToHangul(text) {
+  // 히라가나 → 가타카나 정규화
+  let t = '';
+  for (const ch of text) {
+    const c = ch.charCodeAt(0);
+    t += (c >= 0x3041 && c <= 0x3096) ? String.fromCharCode(c + 0x60) : ch;
+  }
+  let out = '';
+  for (let i = 0; i < t.length; i++) {
+    const two = t.slice(i, i + 2);
+    const one = t[i];
+    if (KANA2[two]) { out += KANA2[two]; i++; continue; }
+    if (one === 'ン') { out = _addJong(out, 4); continue; }   // ん → ㄴ 받침
+    if (one === 'ッ') { out = _addJong(out, 19); continue; }  // っ → ㅅ 받침
+    if (one === 'ー') { out += '-'; continue; }               // 장음
+    if (KANA1[one]) { out += KANA1[one]; continue; }
+    out += one; // 한자·기호 등은 그대로
+  }
+  return out;
+}
+
+function hasKanji(s) { return /[一-鿿]/.test(s); }
+
 async function translate(text) {
   if (!text.trim()) { toast('문장을 입력해 주세요'); return; }
   $('resultCard').classList.add('show');
@@ -578,7 +664,17 @@ async function translate(text) {
     if (!out || /MYMEMORY WARNING/i.test(out)) throw new Error('empty');
     lastResult = out;
     $('resultText').textContent = out;
-    $('resultSub').textContent = (dstLang === 'ja' ? '🇯🇵 ' : '🇰🇷 ') + '「' + text.trim() + '」의 번역 결과';
+    let sub = (dstLang === 'ja' ? '🇯🇵 ' : '🇰🇷 ') + '「' + text.trim() + '」의 번역 결과';
+    // 일본어 결과에 한국어 발음 병기 (가나 부분 자동 변환)
+    if (dstLang === 'ja') {
+      if (!hasKanji(out)) {
+        sub = '🗣 발음: ' + kanaToHangul(out) + '\n' + sub;
+      } else {
+        sub = '🗣 한자가 포함된 문장은 🔊발음듣기로 확인하세요\n' + sub;
+      }
+    }
+    $('resultSub').style.whiteSpace = 'pre-line';
+    $('resultSub').textContent = sub;
   } catch (e) {
     $('resultText').innerHTML = '<span style="font-size:15px;color:var(--text-sub)">⚠️ 번역에 실패했어요. 네트워크를 확인하거나 회화집 탭의 준비된 문장을 이용해 주세요.</span>';
     lastResult = '';
@@ -726,6 +822,170 @@ function renderFavs() {
   }
   items.forEach(p => list.appendChild(phraseEl(p, true)));
 }
+
+/* ═══════════════ 도쿄 가이드 ═══════════════ */
+const TOKYO_SPOTS = [
+  { e:'⛩️', nm:'센소지 (아사쿠사)', jp:'浅草寺', pr:'센소-지', st:'아사쿠사역', route:'신주쿠 → JR 주오선(간다) → 긴자선 환승 → 아사쿠사역 · 약 30분', desc:'도쿄에서 가장 오래된 사찰. 가미나리몬(雷門)의 대형 초롱과 나카미세 상점거리가 유명해요. 기모노 대여 후 사진 찍기 좋은 곳.', tip:'아침 8시 전에 가면 한산해요. 나카미세 거리에서 닌교야키·아게만쥬 간식 필수!' },
+  { e:'🗼', nm:'도쿄 스카이트리', jp:'東京スカイツリー', pr:'도-쿄- 스카이츠리-', st:'오시아게역', route:'아사쿠사에서 도부선 1정거장 · 신주쿠에서 한조몬선(오시아게) 약 35분', desc:'높이 634m, 일본에서 가장 높은 전망탑. 350m/450m 전망대에서 도쿄 전경을 한눈에. 아래층 소라마치 쇼핑몰도 알차요.', tip:'입장권은 온라인 사전 예약이 저렴해요. 일몰 1시간 전 입장하면 낮·야경 둘 다 볼 수 있어요.' },
+  { e:'🚦', nm:'시부야 스크램블 교차로', jp:'渋谷スクランブル交差点', pr:'시부야 스쿠람부루 코-사텐', st:'시부야역', route:'신주쿠 → JR 야마노테선 → 시부야역 · 약 7분', desc:'한 번에 최대 3천 명이 건너는 세계에서 가장 붐비는 교차로. 하치코 동상, 시부야 스카이 전망대가 바로 옆이에요.', tip:'시부야 스카이 야경은 예약 필수(당일 매진 잦음). 스타벅스 츠타야점 2층이 교차로 뷰 명당.' },
+  { e:'🌳', nm:'메이지 신궁', jp:'明治神宮', pr:'메-지 진구-', st:'하라주쿠역', route:'신주쿠 → JR 야마노테선 → 하라주쿠역 · 약 4분, 도보 5분', desc:'도심 속 거대한 숲에 자리한 신사. 하라주쿠 다케시타 거리, 오모테산도와 이어져 반나절 코스로 좋아요.', tip:'입장 무료. 신궁 참배 후 다케시타 거리에서 크레페 먹으며 쇼핑 코스 추천.' },
+  { e:'🗼', nm:'도쿄타워', jp:'東京タワー', pr:'도-쿄- 타와-', st:'아카바네바시역', route:'신주쿠 → 오에도선 → 아카바네바시역 · 약 20분, 도보 5분', desc:'1958년 세워진 도쿄의 상징. 빨간 철탑의 야경이 아름답고, 근처 시바공원에서 타워를 배경으로 사진 찍기 좋아요.', tip:'스카이트리보다 대기가 짧아요. 야간 라이트업은 계절마다 색이 달라져요.' },
+  { e:'🐟', nm:'츠키지 장외시장', jp:'築地場外市場', pr:'츠키지 조-가이시조-', st:'츠키지역', route:'신주쿠 → 마루노우치선(긴자) → 히비야선 환승 → 츠키지역 · 약 25분', desc:'신선한 해산물 먹거리 골목. 참치회, 타마고야키(계란말이), 스시 아침식사로 유명해요.', tip:'오전에 가야 활기차요(수요일 휴무 가게 많음). 현금 준비 필수!' },
+  { e:'🏛️', nm:'우에노 공원 & 아메요코', jp:'上野公園・アメ横', pr:'우에노 코-엔 · 아메요코', st:'우에노역', route:'신주쿠 → JR 야마노테선 → 우에노역 · 약 25분', desc:'박물관·동물원(판다!)이 모인 공원과 서민 시장 거리. 봄에는 벚꽃 명소 1순위예요.', tip:'국립박물관+공원 산책 후 아메요코에서 저렴한 쇼핑·길거리 음식 코스.' },
+  { e:'🎮', nm:'아키하바라', jp:'秋葉原', pr:'아키하바라', st:'아키하바라역', route:'신주쿠 → JR 주오선(오차노미즈) → 소부선 환승 → 아키하바라역 · 약 15분', desc:'애니메이션·게임·전자제품의 성지. 대형 전자상가와 피규어숍, 게임센터가 밀집해 있어요.', tip:'면세 가능 매장이 많으니 여권 지참. 레트로 게임은 슈퍼포테토 추천.' },
+  { e:'🌉', nm:'오다이바', jp:'お台場', pr:'오다이바', st:'다이바역', route:'신주쿠 → 야마노테선(신바시) → 유리카모메 환승 → 다이바역 · 약 40분', desc:'레인보우브리지 야경, 자유의 여신상, 팀랩(디지털 아트), 대형 쇼핑몰이 모인 인공섬.', tip:'팀랩은 반드시 온라인 사전 예약. 유리카모메 모노레일 맨 앞자리에서 보는 풍경이 명물!' },
+  { e:'💎', nm:'긴자', jp:'銀座', pr:'긴자', st:'긴자역', route:'신주쿠 → 마루노우치선 직행 → 긴자역 · 약 15분', desc:'도쿄 최고급 쇼핑 거리. 명품 매장과 백년 노포, 미쉐린 식당이 공존해요. 주말엔 차 없는 보행자 천국.', tip:'유니클로 긴자 12층 플래그십, 이토야 문구점(12층!)은 구경만으로도 즐거워요.' },
+  { e:'🎨', nm:'지브리 미술관', jp:'三鷹の森ジブリ美術館', pr:'미타카노 모리 지부리 비주츠칸', st:'미타카역', route:'신주쿠 → JR 주오선 쾌속 → 미타카역 · 약 20분 + 커뮤니티버스 5분', desc:'토토로·하울 등 지브리 작품의 세계를 체험하는 미술관. 오리지널 단편 애니메이션도 상영해요.', tip:'⚠️ 현장 판매 없음 — 매월 10일 다음 달 티켓 온라인 판매(빠르게 매진). 여행 확정되면 바로 예매하세요.' },
+  { e:'🌸', nm:'신주쿠 교엔', jp:'新宿御苑', pr:'신주쿠 교엔', st:'신주쿠교엔마에역', route:'신주쿠역 남쪽 출구에서 도보 10분', desc:'일본·영국·프랑스식 정원이 어우러진 대형 정원. 벚꽃·단풍 시즌 최고 명소이자 도심 속 휴식처.', tip:'입장료 500엔. 음주 금지·돗자리 피크닉 가능. 「너의 이름은」 배경지로도 유명해요.' },
+];
+
+/* 추천 1일 코스 */
+const TOKYO_COURSES = [
+  { e:'🏮', t:'코스 A · 클래식 도쿄 (전통+전망)', path:'센소지(아사쿠사) → 나카미세 간식 → 스카이트리(도부선 1정거장) → 우에노 공원(긴자선) → 아메요코 저녁', note:'이동이 짧아 첫날 코스로 최적. 저녁은 아메요코 이자카야 골목에서!' },
+  { e:'🛍️', t:'코스 B · 트렌디 도쿄 (쇼핑+젊음)', path:'메이지 신궁 → 하라주쿠 다케시타 거리(크레페) → 오모테산도 → 시부야 교차로·하치코 → 시부야 스카이 야경', note:'전부 야마노테선 한두 정거장 거리라 도보+전철로 충분해요.' },
+  { e:'🍣', t:'코스 C · 미식과 바다 (시장+야경)', path:'츠키지 장외시장 아침 스시 → 긴자 쇼핑 → 신바시 → 유리카모메 → 오다이바 팀랩·레인보우브리지 야경', note:'츠키지는 오전, 팀랩은 사전예약 시간에 맞춰 역순 조정 가능.' },
+];
+
+const TOKYO_FOOD = [
+  { e:'🍜', nm:'이치란 라멘', jp:'一蘭', st:'시부야·신주쿠 등', desc:'1인 칸막이 좌석으로 유명한 돈코츠 라멘 체인. 맛 농도·매운맛을 주문지로 커스텀할 수 있어 초보자도 편해요.', tip:'24시간 매장 많음. 피크시간(12~14시) 대기 김 — 오전이나 늦은 밤 추천.', order:'라멘 하나 주세요 — ラーメンを一つください (라-멘오 히토츠 쿠다사이)' },
+  { e:'🍜', nm:'아후리 (유자소금라멘)', jp:'AFURI', st:'하라주쿠·에비스 등', desc:'유자 향이 상큼한 소금라멘의 대표주자. 깔끔한 국물을 좋아하면 강력 추천, 매장도 세련된 분위기예요.', tip:'유자시오라멘(柚子塩らーめん)이 시그니처. 자판기에서 식권 구매 방식.', order:'유자 소금라멘 주세요 — 柚子塩らーめんをください (유즈시오라-멘오 쿠다사이)' },
+  { e:'🍣', nm:'스시잔마이', jp:'すしざんまい', st:'츠키지 본점 등', desc:'참치 경매로 유명한 24시간 스시 체인. 관광객도 부담 없는 가격에 신선한 스시를 즐길 수 있어요.', tip:'츠키지 본점이 원조. 오토로(대뱃살)와 아나고(바다장어) 추천.', order:'오마카세로 부탁해요 — おまかせでお願いします (오마카세데 오네가이시마스)' },
+  { e:'🥩', nm:'규카츠 모토무라', jp:'牛かつもと村', st:'시부야·신주쿠 등', desc:'겉은 바삭, 속은 레어인 소고기 커틀릿. 1인 화로에 직접 구워 먹는 방식으로 한국인 여행자에게 인기 폭발.', tip:'오픈 직후(11시)나 브레이크타임 직전이 대기가 짧아요.', order:'규카츠 정식 하나 주세요 — 牛かつ定食を一つください (규-카츠 테-쇼쿠오 히토츠 쿠다사이)' },
+  { e:'🍤', nm:'텐동 (아사쿠사 다이코쿠야)', jp:'天丼 大黒家', st:'아사쿠사역', desc:'1887년 개업한 튀김덮밥 노포. 진한 간장 소스의 새우튀김 덮밥이 시그니처예요.', tip:'센소지 관광과 묶어서 점심 코스로. 줄이 길면 근처 분점으로!', order:'텐동 하나 주세요 — 天丼を一つください (텐동오 히토츠 쿠다사이)' },
+  { e:'🥘', nm:'몬자야키 (츠키시마)', jp:'もんじゃ焼き', st:'츠키시마역', desc:'도쿄 대표 향토음식. 철판에 눌러 먹는 걸쭉한 부침으로, 츠키시마 "몬자 스트리트"에 70여 개 전문점이 모여 있어요.', tip:'직원에게 부탁하면 구워줘요 — "야이테 모라에마스카?(焼いてもらえますか?)"', order:'명란떡치즈 몬자 주세요 — 明太もちチーズもんじゃをください (멘타이 모치 치-즈 몬자오 쿠다사이)' },
+  { e:'🍢', nm:'이자카야 골목', jp:'思い出横丁・ゴールデン街', st:'신주쿠역', desc:'오모이데요코초(꼬치구이 골목)와 골든가이(미니 바 200여 곳). 쇼와시대 분위기 그대로의 밤 문화를 체험할 수 있어요.', tip:'자릿세(오토시) 300~500엔이 관례예요. 골든가이는 관광객 환영 표시 있는 가게로!', order:'생맥주 두 잔 주세요 — 生ビールを二つください (나마비-루오 후타츠 쿠다사이)' },
+  { e:'🍚', nm:'규동 체인 (요시노야 등)', jp:'吉野家・すき家・松屋', st:'전역', desc:'소고기덮밥 한 그릇 400~600엔. 빠르고 저렴하게 한 끼 해결할 수 있는 일본 서민 음식의 대표.', tip:'마츠야는 자판기 식권+무료 된장국. 아침 메뉴(~10시)가 특히 가성비 좋아요.', order:'규동 곱빼기 주세요 — 牛丼の大盛りをください (규-동노 오-모리오 쿠다사이)' },
+  { e:'🥞', nm:'하라주쿠 크레페', jp:'原宿クレープ', st:'하라주쿠역', desc:'다케시타 거리의 명물 길거리 디저트. 생크림·과일·아이스크림을 얇은 크레페에 돌돌 만 간식이에요.', tip:'마리온 크레페(1976년~)가 원조. 딸기생크림이 스테디셀러.', order:'딸기 생크림 크레페 주세요 — いちご生クリームクレープをください (이치고 나마쿠리-무 쿠레-푸오 쿠다사이)' },
+  { e:'🏪', nm:'편의점 먹거리', jp:'コンビニグルメ', st:'전역', desc:'세븐일레븐 계란샌드·패미치키·명란 오니기리·나카쇼쿠 디저트… 일본 편의점은 그 자체로 맛집이에요.', tip:'세븐 스무디(매장 제조), 로손 프리미엄롤케이크, 패밀리마트 파미치키 꼭 드셔보세요.', order:'이거 데워 주세요 — これを温めてください (코레오 아타타메테 쿠다사이)' },
+];
+
+const TOKYO_TRANSIT = [
+  { e:'💳', t:'IC카드 (스이카·파스모)', rows:[
+    ['구입', '역 발매기 (보증금 500엔)'],
+    ['충전', '발매기·편의점 (현금)'],
+    ['사용', '전철·버스·편의점·자판기'],
+    ['아이폰', 'Apple Pay에 Suica 추가 가능'],
+  ], tip:'개찰구에 터치만 하면 끝! 관광객용 "Welcome Suica"(보증금 없음, 28일 유효)도 있어요.' },
+  { e:'✈️', t:'나리타공항 → 도쿄 시내', rows:[
+    ['스카이라이너', '우에노까지 41분 · 약 2,570엔'],
+    ['나리타익스프레스', '도쿄역 53분 · 약 3,070엔'],
+    ['리무진버스', '주요 호텔 직행 · 약 3,600엔'],
+    ['게이세이 본선', '가장 저렴 · 약 1,050엔 (75분)'],
+  ], tip:'짐이 많으면 리무진버스, 빠른 게 우선이면 스카이라이너 추천. 왕복권이 할인돼요.' },
+  { e:'🛬', t:'하네다공항 → 도쿄 시내', rows:[
+    ['게이큐선', '시나가와 11분 · 약 330엔'],
+    ['모노레일', '하마마츠초 13분 · 약 520엔'],
+    ['리무진버스', '주요 호텔 직행 · 약 1,400엔'],
+  ], tip:'하네다는 시내와 가까워 전철이면 충분해요. 게이큐선은 야마노테선 환승이 편리.' },
+  { e:'🚇', t:'도쿄 지하철 꿀팁', rows:[
+    ['Tokyo Subway Ticket', '24h 800엔 / 48h 1,200엔 / 72h 1,500엔'],
+    ['적용 노선', '도쿄메트로 9개 + 도에이 4개 전 노선'],
+    ['구입처', '공항·빅카메라 등 (여권 필요)'],
+    ['1회 요금', '보통 180~260엔'],
+  ], tip:'하루 3번 이상 지하철 타면 무조건 이득! 단 JR(야마노테선)은 적용 안 돼요.' },
+  { e:'🚃', t:'JR 야마노테선', rows:[
+    ['노선', '도쿄 주요 지역 순환선 (한 바퀴 약 1시간)'],
+    ['주요 역', '도쿄·우에노·아키하바라·신주쿠·시부야·하라주쿠·시나가와'],
+    ['요금', '150~210엔 (IC카드)'],
+  ], tip:'서울 2호선 같은 존재. 주요 관광지 대부분이 이 노선 근처라 숙소도 야마노테선 역 근처가 편해요.' },
+  { e:'🚕', t:'택시', rows:[
+    ['기본요금', '약 500엔 (1.096km)'],
+    ['심야 할증', '22시~5시 20%'],
+    ['앱', 'GO·Uber (한국 카드 등록 가능)'],
+  ], tip:'뒷문은 자동문! 요금이 비싼 편이라 심야 막차 이후나 짐 많을 때만 추천. 주소를 보여주며 "코코마데 오네가이시마스".' },
+  { e:'🗺️', t:'길찾기 & 에티켓', rows:[
+    ['길찾기', '구글맵이 환승·플랫폼 번호까지 정확'],
+    ['러시아워', '평일 7:30~9:30 피하기'],
+    ['에스컬레이터', '도쿄는 왼쪽 서기'],
+  ], tip:'전철 안 통화는 금물, 우선석 근처에선 휴대폰 무음으로. 구글맵에 출구 번호(A1, B2…)까지 나오니 출구를 미리 확인하면 헤매지 않아요.' },
+];
+
+function tokyoSpotEl(s, isFood) {
+  const d = document.createElement('div');
+  d.className = 'spot';
+  d.innerHTML = `
+    <div class="top">
+      <div class="emj">${s.e}</div>
+      <div style="flex:1;min-width:0">
+        <div class="nm">${s.nm}</div>
+        <div class="jp">${s.jp}${s.pr ? ` <span class="pr-inline">🗣 ${s.pr}</span>` : ''}</div>
+      </div>
+      <div class="st">📍 ${s.st}</div>
+    </div>
+    ${s.route ? `<div class="route">🚏 <b>추천경로</b> · ${s.route}</div>` : ''}
+    <div class="desc">${s.desc}</div>
+    <div class="tip">💡 ${s.tip}</div>
+    ${s.order ? `<div class="order">🗣 주문 한마디: <b>${s.order}</b></div>` : ''}
+    <div class="acts">
+      <button class="tbtn ghost b-big">🔍 이름 크게보기</button>
+      <button class="tbtn ghost b-tts">🔊 이름 듣기</button>
+      ${s.order ? '<button class="tbtn ghost b-ord">🔊 주문문장 듣기</button>' : ''}
+      ${s.route ? '<button class="tbtn ghost b-map">🗺️ 지도 길찾기</button>' : ''}
+    </div>`;
+  d.querySelector('.b-big').addEventListener('click', () => showBig(s.jp));
+  d.querySelector('.b-tts').addEventListener('click', () => speak(s.jp, 'ja'));
+  const ord = d.querySelector('.b-ord');
+  if (ord) ord.addEventListener('click', () => {
+    const m = s.order.match(/—\s*([^(]+)\(/);
+    speak(m ? m[1].trim() : s.order, 'ja');
+  });
+  const map = d.querySelector('.b-map');
+  if (map) map.addEventListener('click', () =>
+    window.open('https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(s.jp) + '&travelmode=transit', '_blank'));
+  return d;
+}
+
+function tokyoCourseEl(c) {
+  const d = document.createElement('div');
+  d.className = 'spot course';
+  d.innerHTML = `
+    <div class="top"><div class="emj">${c.e}</div><div class="nm">${c.t}</div></div>
+    <div class="desc" style="margin-top:8px">${c.path.split(' → ').map(p => `<span class="step">${p}</span>`).join('<span class="arrow"> → </span>')}</div>
+    <div class="tip">💡 ${c.note}</div>`;
+  return d;
+}
+
+function tokyoTransitEl(t) {
+  const d = document.createElement('div');
+  d.className = 'spot';
+  d.innerHTML = `
+    <div class="top">
+      <div class="emj">${t.e}</div>
+      <div class="nm">${t.t}</div>
+    </div>
+    <div style="margin-top:8px">${t.rows.map(r => `<div class="tr-row"><span class="k">${r[0]}</span><span class="v">${r[1]}</span></div>`).join('')}</div>
+    <div class="tip">💡 ${t.tip}</div>`;
+  return d;
+}
+
+let tokyoSeg = 'spots';
+function renderTokyo() {
+  const body = $('tokyoBody');
+  body.innerHTML = '';
+  if (tokyoSeg === 'spots') {
+    const h1 = document.createElement('div');
+    h1.className = 'quick-title'; h1.style.marginTop = '0';
+    h1.textContent = '🚶 추천 1일 코스';
+    body.appendChild(h1);
+    TOKYO_COURSES.forEach(c => body.appendChild(tokyoCourseEl(c)));
+    const h2 = document.createElement('div');
+    h2.className = 'quick-title';
+    h2.textContent = '⛩️ 관광지별 상세 (경로·발음 포함)';
+    body.appendChild(h2);
+    TOKYO_SPOTS.forEach(s => body.appendChild(tokyoSpotEl(s)));
+  }
+  else if (tokyoSeg === 'food') TOKYO_FOOD.forEach(s => body.appendChild(tokyoSpotEl(s, true)));
+  else TOKYO_TRANSIT.forEach(t => body.appendChild(tokyoTransitEl(t)));
+}
+$('tokyoSeg').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  tokyoSeg = b.dataset.seg;
+  document.querySelectorAll('#tokyoSeg button').forEach(x => x.classList.toggle('on', x === b));
+  renderTokyo();
+  window.scrollTo(0, 0);
+});
+renderTokyo();
 
 /* ═══════════════ 크게보기 ═══════════════ */
 function showBig(text) {
