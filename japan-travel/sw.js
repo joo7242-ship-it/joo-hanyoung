@@ -1,7 +1,7 @@
 /* 일본여행 번역기 — 서비스워커 (오프라인 지원)
    서브도메인 루트(japan.joocnj.com/)와 하위 경로(/japan-travel/) 어디에
    마운트되어도 동작하도록 모든 경로를 SW 위치 기준 상대경로로 계산한다. */
-const CACHE = 'japan-travel-v5';
+const CACHE = 'japan-travel-v6';
 const BASE = new URL('./', self.location).pathname; // '/' 또는 '/japan-travel/'
 const ASSETS = [
   '', 'index.html', 'manifest.webmanifest',
