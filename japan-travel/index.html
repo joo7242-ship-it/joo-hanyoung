@@ -220,6 +220,12 @@
   .spot .order { font-size: 12.5px; margin-top: 8px; color: var(--accent); }
   .spot .order b { color: var(--primary); }
   .spot .pr-inline { font-size: 12px; color: var(--text-sub); font-weight: 600; }
+  .map-card svg { width: 100%; height: auto; display: block; }
+  .map-card .pin { cursor: pointer; }
+  .map-legend { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+  .map-legend span { font-size: 11.5px; font-weight: 700; padding: 4px 9px; border-radius: 12px; color: #fff; }
+  .spot.flash { animation: flashBg 1.6s ease; }
+  @keyframes flashBg { 0%, 60% { background: var(--primary-light); } 100% { background: var(--card); } }
   .spot .route { font-size: 12.5px; line-height: 1.6; margin-top: 8px; color: var(--accent); background: #EFF6FB; border-radius: 8px; padding: 8px 10px; }
   .spot.course { border-left: 4px solid var(--primary); }
   .spot.course .step { background: var(--primary-light); color: var(--primary); font-weight: 700; border-radius: 6px; padding: 2px 7px; font-size: 12.5px; display: inline-block; margin: 2px 0; }
@@ -344,6 +350,7 @@
       <button data-seg="spots" class="on">⛩️ 관광지</button>
       <button data-seg="food">🍜 맛집</button>
       <button data-seg="transit">🚇 교통</button>
+      <button data-seg="map">🗺️ 맵</button>
     </div>
     <div id="tokyoBody"></div>
   </section>
@@ -958,6 +965,72 @@ function tokyoTransitEl(t) {
   return d;
 }
 
+/* ═══ 도쿄 맵 (오프라인 SVG) ═══ */
+const SPOT_PINS = [
+  [298, 82], [334, 104], [85, 280], [78, 230], [222, 262], [263, 222],
+  [245, 95], [270, 140], [298, 332], [243, 203], [22, 172], [103, 190],
+];
+
+function mapBaseSvg(inner, h) {
+  return `<svg viewBox="0 0 360 ${h || 420}" xmlns="http://www.w3.org/2000/svg" font-family="inherit">
+    <ellipse cx="175" cy="200" rx="105" ry="130" fill="none" stroke="#7AC143" stroke-width="5" opacity=".85"/>
+    <circle cx="70" cy="180" r="5" fill="#333"/><text x="52" y="168" font-size="11" font-weight="700">신주쿠</text>
+    <circle cx="85" cy="280" r="5" fill="#333"/><text x="60" y="298" font-size="11" font-weight="700">시부야</text>
+    <circle cx="278" cy="185" r="5" fill="#333"/><text x="248" y="176" font-size="11" font-weight="700">도쿄역</text>
+    <circle cx="245" cy="95" r="5" fill="#333"/><text x="252" y="120" font-size="11" font-weight="700">우에노</text>
+    <circle cx="215" cy="325" r="4" fill="#666"/><text x="188" y="344" font-size="10">시나가와</text>
+    <circle cx="110" cy="85" r="4" fill="#666"/><text x="80" y="76" font-size="10">이케부쿠로</text>
+    <circle cx="270" cy="235" r="4" fill="#666"/><text x="278" y="240" font-size="10">신바시</text>
+    ${inner}
+  </svg>`;
+}
+
+function tokyoMapHtml() {
+  const pins = TOKYO_SPOTS.map((s, i) => {
+    const [x, y] = SPOT_PINS[i];
+    return `<g class="pin" data-idx="${i}"><title>${s.nm}</title>
+      <circle cx="${x}" cy="${y}" r="13" fill="#fff" stroke="#C0392B" stroke-width="2"/>
+      <text x="${x}" y="${y + 5}" font-size="14" text-anchor="middle">${s.e}</text></g>`;
+  }).join('');
+  const spotsSvg = mapBaseSvg(`
+    <text x="150" y="30" font-size="12" fill="#7AC143" font-weight="700">◯ JR 야마노테선 (순환)</text>
+    <line x1="70" y1="180" x2="22" y2="172" stroke="#F15A22" stroke-width="3" stroke-dasharray="5 4"/>
+    ${pins}`);
+  const transitSvg = mapBaseSvg(`
+    <polyline points="70,180 175,182 278,185" fill="none" stroke="#F15A22" stroke-width="4"/>
+    <polyline points="85,280 170,240 243,203 245,95 298,88" fill="none" stroke="#FF9500" stroke-width="4" opacity=".9"/>
+    <polyline points="70,180 160,200 243,203 278,185" fill="none" stroke="#F62E36" stroke-width="4" opacity=".9"/>
+    <polyline points="270,235 285,290 298,332" fill="none" stroke="#29A8E0" stroke-width="4"/>
+    <circle cx="298" cy="88" r="5" fill="#333"/><text x="305" y="92" font-size="11" font-weight="700">아사쿠사</text>
+    <circle cx="298" cy="332" r="5" fill="#333"/><text x="270" y="352" font-size="11" font-weight="700">오다이바</text>
+    <circle cx="243" cy="203" r="5" fill="#333"/><text x="222" y="220" font-size="11" font-weight="700">긴자</text>
+    <line x1="250" y1="88" x2="330" y2="45" stroke="#888" stroke-width="2.5" stroke-dasharray="6 4"/>
+    <text x="245" y="38" font-size="10.5" fill="#555">✈️ 나리타공항 (스카이라이너)</text>
+    <line x1="215" y1="330" x2="215" y2="385" stroke="#888" stroke-width="2.5" stroke-dasharray="6 4"/>
+    <text x="150" y="404" font-size="10.5" fill="#555">✈️ 하네다공항 (게이큐선·모노레일)</text>`, 420);
+  return `
+    <div class="card map-card">
+      <div class="quick-title" style="margin:0 0 8px">⛩️ 추천 관광지 맵 <span style="font-weight:400">· 핀을 누르면 상세정보로 이동</span></div>
+      <div id="spotsMap">${spotsSvg}</div>
+    </div>
+    <div class="card map-card">
+      <div class="quick-title" style="margin:0 0 8px">🚇 대중교통 노선 맵 (주요 노선)</div>
+      ${transitSvg}
+      <div class="map-legend">
+        <span style="background:#7AC143">야마노테선 JR 순환</span>
+        <span style="background:#F15A22">주오선 신주쿠↔도쿄</span>
+        <span style="background:#FF9500">긴자선 시부야↔아사쿠사</span>
+        <span style="background:#F62E36">마루노우치선 신주쿠↔긴자↔도쿄</span>
+        <span style="background:#29A8E0">유리카모메 신바시↔오다이바</span>
+      </div>
+      <div class="tr-tools" style="margin-top:12px">
+        <button class="tbtn ghost" id="btnMetroMap">🚇 도쿄메트로 공식 노선도</button>
+        <button class="tbtn ghost" id="btnGmapTransit">🗺️ 구글맵 열기</button>
+      </div>
+      <div class="tip" style="margin-top:10px">💡 위 맵은 위치 감각을 위한 간략도예요. 실제 이동은 구글맵 길찾기(각 관광지의 🗺️ 버튼)가 가장 정확합니다.</div>
+    </div>`;
+}
+
 let tokyoSeg = 'spots';
 function renderTokyo() {
   const body = $('tokyoBody');
@@ -975,7 +1048,34 @@ function renderTokyo() {
     TOKYO_SPOTS.forEach(s => body.appendChild(tokyoSpotEl(s)));
   }
   else if (tokyoSeg === 'food') TOKYO_FOOD.forEach(s => body.appendChild(tokyoSpotEl(s, true)));
-  else TOKYO_TRANSIT.forEach(t => body.appendChild(tokyoTransitEl(t)));
+  else if (tokyoSeg === 'transit') TOKYO_TRANSIT.forEach(t => body.appendChild(tokyoTransitEl(t)));
+  else {
+    body.innerHTML = tokyoMapHtml();
+    // 관광지 핀 → 상세 카드로 이동
+    body.querySelectorAll('.pin').forEach(pin => {
+      pin.addEventListener('click', () => {
+        const idx = Number(pin.dataset.idx);
+        toast(TOKYO_SPOTS[idx].nm);
+        tokyoSeg = 'spots';
+        document.querySelectorAll('#tokyoSeg button').forEach(x =>
+          x.classList.toggle('on', x.dataset.seg === 'spots'));
+        renderTokyo();
+        const cards = document.querySelectorAll('#tokyoBody .spot:not(.course)');
+        const target = cards[idx];
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          target.classList.add('flash');
+          setTimeout(() => target.classList.remove('flash'), 1700);
+        }
+      });
+    });
+    const metro = body.querySelector('#btnMetroMap');
+    if (metro) metro.addEventListener('click', () =>
+      window.open('https://www.tokyometro.jp/kr/subwaymap/', '_blank'));
+    const gmap = body.querySelector('#btnGmapTransit');
+    if (gmap) gmap.addEventListener('click', () =>
+      window.open('https://www.google.com/maps/@35.6812,139.7671,12z/data=!5m1!1e2', '_blank'));
+  }
 }
 $('tokyoSeg').addEventListener('click', e => {
   const b = e.target.closest('button');
