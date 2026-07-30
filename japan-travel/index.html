@@ -1167,7 +1167,15 @@ renderPhrases();
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js', { scope: './' })
+      .then(reg => { if (reg && reg.update) reg.update(); })
       .catch(() => {/* 등록 실패해도 앱은 정상 동작 */});
+  });
+  // 새 서비스워커가 제어권을 잡으면 1회 자동 새로고침 → 항상 최신 버전 표시
+  let _swRefreshed = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (_swRefreshed) return;
+    _swRefreshed = true;
+    location.reload();
   });
 }
 
